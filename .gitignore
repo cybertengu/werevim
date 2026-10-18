@@ -1,0 +1,7 @@
+*.exe
+*.pdb
+*.dll
+*.lib
+*.obj
+*.ilk
+vendor/nvim/

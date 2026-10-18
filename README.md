@@ -1,6 +1,6 @@
 # Werevim
 ## Purpose
-A GUI for Neovim, written in Odin with SDL2. Visual Studio (VS) Code's vim emulation doesn't support every Vim command, and I wanted an editor without constant update pages. Auto-completion is annoying to me in VS Code when typing.
+A GUI for Neovim, written in Odin with SDL2. Visual Studio Code's (VS Code) vim emulation doesn't support every Vim command, and I wanted an editor without constant update pages. Auto-completion is annoying to me in VS Code when typing.
 
 ## Status
 Currently in development. It only opens a window and renders text. No Neovim integration yet.
@@ -9,9 +9,9 @@ Currently in development. It only opens a window and renders text. No Neovim int
 Fast startup, fast file open and edit, fast compile time, Windows and macOS.
 
 ## Requirements
-Odin (dev-2026-01) and Neovim 0.9+ on your PATH (once implemented), and the SDL2_ttf and SDL2 DDL files in Odin's vendor folder for Windows.
+Odin (dev-2026-01) and Neovim 0.9+ on your PATH (once implemented), and the SDL2_ttf and SDL2 DLL files in Odin's vendor folder for Windows.
 
-Odin is installed in C:\Odin (not yet set up as an environment variable).
+The build.bat expects Odin at C:\Odin (not yet set up as an environment variable in build.bat). Edit the paths if yours is elsewhere.
 
 ## Build
 How to build on Windows:
@@ -22,7 +22,7 @@ How to build on Windows:
 NOTE: this needs to run from the repo folder, because the font path is relative.
 
 ## Baseline
-Currently only tested on Windows debug build, macOS planned. Used flags such as -debug and -show-timing. Odin version is dev-2026-01:0f875727a.
+Only tested on Windows (debug build), macOS planned. Used flags such as -debug and -show-timings. Odin version is dev-2026-01:0f875727a.
 
 Measured on 12th Gen Intel(R) Core(TM) i9-12900H, 14 Cores, 20 Logical Processors, Windows 11.
 
@@ -42,4 +42,4 @@ Werevim is released under the MIT License. See [LICENSE](LICENSE).
 
 The font, JetBrains Mono, is licensed under the SIL Open Font License. See [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
-SDL2 and SDL2_ttf have their own licenses. I do not include them in this repo, but you can get them from Odin vendors location.
+SDL2 and SDL2_ttf have their own licenses. I do not include them in this repo, but you can get them from Odin's vendor folder.

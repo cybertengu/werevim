@@ -23,7 +23,7 @@ Value :: union
     i64,
     //f64,
     string,
-    //Array,
+    Array,
     //Map,
 }
 
@@ -174,6 +174,55 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             value = strings.clone(s, context.temp_allocator)
             consumed = headerSize + n
             ok = true
+        case 0x90..=0x9f:
+            // fixarray
+            n := int(data[0] & 0x0f)
+            headerSize := 1
+            if n > len(data) - headerSize
+            {
+                ok = false
+                return 
+            }
+
+            value, consumed, ok = decode_array_body(data, headerSize, n)
+        case 0xdc:
+            // array 16
+            // header size is 3
+            // max count is 65,535
+            // 2 bytes for count
+            // use read_be
+            headerSize := 3
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+
+            n := int(read_be(data[1:], headerSize - 1))
+            if n > len(data) - headerSize
+            {
+                ok = false
+                return 
+            }
+
+            value, consumed, ok = decode_array_body(data, headerSize, n)
+        case 0xdd:
+            // array 32
+            headerSize := 5
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+
+            n := int(read_be(data[1:], headerSize - 1))
+            if n > len(data) - headerSize
+            {
+                ok = false
+                return 
+            }
+
+            value, consumed, ok = decode_array_body(data, headerSize, n)
         case:
             fmt.eprintfln("decode did not handle this case: 0x%02x", data[0])
             ok = false
@@ -194,4 +243,28 @@ read_be :: proc(data : []u8, n : int) -> u64
     }
 
     return accumulator
+}
+
+decode_array_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, consumed : int, ok : bool)
+{
+    arr := make([]Value, n, context.temp_allocator)
+    offset := headerSize
+    for i := 0; i < n; i += 1
+    {
+        element, used, element_ok := decode(data[offset:])
+        if !element_ok
+        {
+            ok = false
+            return
+        }
+
+        arr[i] = element
+        offset += used
+    }
+    
+    value = arr
+    consumed = offset
+    ok = true
+
+    return
 }

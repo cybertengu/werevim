@@ -5,3 +5,5 @@
 *.obj
 *.ilk
 vendor/nvim/
+werevim
+

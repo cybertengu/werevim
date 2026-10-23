@@ -4,7 +4,6 @@ import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 import "core:os"
 import "core:fmt"
-import "core:os/os2"
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -46,7 +45,7 @@ main :: proc()
     for counter < 10
     {
         counter += 1
-        n, err := os2.read(nvim.from_nvim, chunk[:])
+        n, err := os.read(nvim.from_nvim, chunk[:])
         if err != nil
         {
             fmt.eprintfln("%v", err)

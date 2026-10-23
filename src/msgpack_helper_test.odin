@@ -1,6 +1,7 @@
 package main
 
 import "core:testing"
+import "core:slice"
 
 expect_values_equal :: proc(t : ^testing.T, got, want : Value, loc := #caller_location)
 {
@@ -62,6 +63,14 @@ values_equal :: proc(a, b : Value) -> bool
             }
 
             return true
+        case Ext:
+            y, ok := b.(Ext)
+            if !ok
+            {
+                return false
+            }
+
+            return slice.equal(x.data, y.data) && x.type == y.type
         case:
             return b == nil
     }

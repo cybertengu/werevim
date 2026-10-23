@@ -4,6 +4,7 @@ import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 import "core:os"
 import "core:fmt"
+import "core:os/os2"
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -14,11 +15,58 @@ main :: proc()
 {
     running : bool = true
     event : sdl2.Event
+    nvim, ok := nvim_start()
+    if !ok
+    {
+        fmt.eprintln("Couldn't set up Neovim.")
+        os.exit(1)
+    }
+    defer nvim_stop(&nvim)
 
     initSDL()
     defer cleanup()
 
     initFont(FONT_FILENAME)
+
+    args := Array{Value(i64(80)), Value(i64(24)), Map{
+        Pair{Value(string("ext_linegrid")), Value(bool(true))},
+        Pair{Value(string("rgb")), Value(bool(true))},
+    },}
+    msgid, result := nvim_request(&nvim, "nvim_ui_attach", args)
+    if !result
+    {
+        fmt.eprintln("Couldn't set a request to Neovim")
+        os.exit(1)
+    }
+    fmt.println(msgid)
+    chunk : [4096]byte
+    pending : [dynamic]u8
+    defer delete(pending)
+    counter : int
+    for counter < 10
+    {
+        counter += 1
+        n, err := os2.read(nvim.from_nvim, chunk[:])
+        if err != nil
+        {
+            fmt.eprintfln("%v", err)
+            break
+        }
+
+        append(&pending, ..chunk[:n])
+        value, consumed, ok := decode(pending[:])
+        if ok
+        {
+            fmt.printfln("%v", value)
+            copy(pending[:], pending[consumed:])
+            resize(&pending, len(pending) - consumed)
+        }
+        else
+        {
+            break
+        }
+        free_all(context.temp_allocator)
+    }
 
     for running
     {

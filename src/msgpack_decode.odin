@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:slice"
 
 decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
 {
@@ -304,6 +305,86 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             
             value = i64(read_be(data[1:], payload))
             consumed = 9
+            ok = true
+        case 0xc7:
+            // ext 8
+            headerSize := 3
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+            
+            n := int(read_be(data[1:], headerSize - 2))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Ext{i8(data[headerSize - 1]), raw}
+            consumed = headerSize + n
+            ok = true
+        case 0xc8:
+            // ext 16
+            headerSize := 4
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+            
+            n := int(read_be(data[1:], headerSize - 2))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Ext{i8(data[headerSize - 1]), raw}
+            consumed = headerSize + n
+            ok = true
+        case 0xc9:
+            // ext 32
+            headerSize := 6
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+            
+            n := int(read_be(data[1:], headerSize - 2))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Ext{i8(data[headerSize - 1]), raw}
+            consumed = headerSize + n
+            ok = true
+        case 0xd4..=0xd8:
+            // fixext
+            headerSize := 2
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+            
+            n := 1 << uint(data[0] - 0xd4)
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Ext{i8(data[1]), raw}
+            consumed = headerSize + n
             ok = true
         case:
             fmt.eprintfln("decode did not handle this case: 0x%02x", data[0])

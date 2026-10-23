@@ -21,13 +21,12 @@ How to build on Windows:
 ```
 NOTE: this needs to run from the repo folder, because the font path is relative.
 
-## Baseline
+## Baseline Build Time
 Only tested on Windows (debug build), macOS planned. Used flags such as -debug and -show-timings. Odin version is dev-2026-01:0f875727a.
 
 Measured on 12th Gen Intel(R) Core(TM) i9-12900H, 14 Cores, 20 Logical Processors, Windows 11.
 
 Baseline time 2026/10/17:
-
 ```
 Total Time                         -   455.211 ms - 100.00%
 initialization                     -    12.538 ms -   2.75%
@@ -44,6 +43,15 @@ parse files                        -    24.724 ms -   7.68%
 type check                         -    92.806 ms -  28.83%
 LLVM API Code Gen (   71 modules ) -    96.222 ms -  29.89%
 msvc-link                          -    99.680 ms -  30.96%
+```
+2026/10/20
+```
+Total Time                         -   355.928 ms - 100.00%
+initialization                     -     8.848 ms -   2.48%
+parse files                        -    28.018 ms -   7.87%
+type check                         -   105.253 ms -  29.57%
+LLVM API Code Gen (   72 modules ) -   109.665 ms -  30.81%
+msvc-link                          -   104.137 ms -  29.25%
 ```
 
 ## License

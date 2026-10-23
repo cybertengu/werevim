@@ -2,6 +2,7 @@ package main
 
 import "core:testing"
 import "core:slice"
+import "core:strings"
 
 @(test)
 test_write_be_two_bytes :: proc(t : ^testing.T)
@@ -302,4 +303,285 @@ test_encode_int_min_i64 :: proc(t : ^testing.T)
 
     expected := []u8{0xd3, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
     testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_nil :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_nil(&buf)
+
+    expected := []u8{0xc0}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_bool_true :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_bool(&buf, true)
+
+    expected := []u8{0xc3}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_bool_false :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_bool(&buf, false)
+
+    expected := []u8{0xc2}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_array_header_0 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_array_header(&buf, 0)
+
+    expected := []u8{0x90}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_array_header_15 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_array_header(&buf, 15)
+
+    expected := []u8{0x9f}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_array_header_16 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_array_header(&buf, 16)
+
+    expected := []u8{0xdc, 0x00, 0x10}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_array_header_65535 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_array_header(&buf, 65535)
+
+    expected := []u8{0xdc, 0xff, 0xff}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_array_header_65536 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_array_header(&buf, 65536)
+
+    expected := []u8{0xdd, 0x00, 0x01, 0x00, 0x00}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_Map_header_0 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_Map_header(&buf, 0)
+
+    expected := []u8{0x80}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_Map_header_15 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_Map_header(&buf, 15)
+
+    expected := []u8{0x8f}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_Map_header_16 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_Map_header(&buf, 16)
+
+    expected := []u8{0xde, 0x00, 0x10}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_Map_header_65535 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_Map_header(&buf, 65535)
+
+    expected := []u8{0xde, 0xff, 0xff}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_Map_header_65536 :: proc(t : ^testing.T)
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_Map_header(&buf, 65536)
+
+    expected := []u8{0xdf, 0x00, 0x01, 0x00, 0x00}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_empty :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_string(&buf, "")
+
+    expected := []u8{0xa0}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_hi :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_string(&buf, "hi")
+
+    expected := []u8{0xa2, 0x68, 0x69}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_utf8 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    encode_string(&buf, "é")
+
+    expected := []u8{0xa2, 0xc3, 0xa9}
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_31 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    actual : string = strings.repeat("a", 31, context.temp_allocator)
+    encode_string(&buf, actual)
+
+    expected := make([]u8, 32, context.temp_allocator)
+    expected[0] = 0xbf
+    for i in 1..<32
+    {
+        expected[i] = 'a'
+    }
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_32 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    actual : string = strings.repeat("a", 32, context.temp_allocator)
+    encode_string(&buf, actual)
+
+    expected := make([]u8, 34, context.temp_allocator)
+    expected[0] = 0xd9
+    expected[1] = 0x20
+    for i in 2..<34
+    {
+        expected[i] = 0x61
+    }
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_255 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    actual : string = strings.repeat("a", 255, context.temp_allocator)
+    encode_string(&buf, actual)
+
+    expected := make([]u8, 257, context.temp_allocator)
+    expected[0] = 0xd9
+    expected[1] = 0xff
+    for i in 2..<257
+    {
+        expected[i] = 0x61
+    }
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_string_256 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    buf : [dynamic]u8
+    defer delete(buf)
+
+    actual : string = strings.repeat("a", 256, context.temp_allocator)
+    encode_string(&buf, actual)
+
+    expected := make([]u8, 259, context.temp_allocator)
+    expected[0] = 0xda
+    expected[1] = 0x01
+    expected[2] = 0x00
+    for i in 3..<259
+    {
+        expected[i] = 0x61
+    }
+    testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
+}
+
+@(test)
+test_encode_value_i64 :: proc(t : ^testing.T)
+{
+    
 }

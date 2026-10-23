@@ -23,6 +23,7 @@ Value :: union
     string,
     Array,
     Map,
+    Ext,
 }
 
 Nil :: struct
@@ -36,4 +37,10 @@ Map :: []Pair
 Pair :: struct
 {
     key, value : Value,
+}
+
+Ext :: struct
+{
+    type : i8,
+    data : []u8,
 }

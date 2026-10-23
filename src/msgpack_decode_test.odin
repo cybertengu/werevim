@@ -1090,3 +1090,187 @@ test_decode_uint64_truncated :: proc(t : ^testing.T)
 
     testing.expect(t, !ok)
 }
+
+@(test)
+test_decode_ext_d4 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd4, 0x01, 0x05}
+    value, consumed, ok := decode(data)
+    expected := Ext{1, {0x05}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 3)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_d5 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd5, 0x02, 0xaa, 0xbb}
+    value, consumed, ok := decode(data)
+    expected := Ext{2, {0xaa, 0xbb}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 4)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_d6 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd6, 0x00, 0x01, 0x02, 0x03, 0x04}
+    value, consumed, ok := decode(data)
+    expected := Ext{0, {1, 2, 3, 4}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 6)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_d8 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := make([]u8, 18, context.temp_allocator)
+    data[0] = 0xd8
+    data[1] = 0x00
+    for i in 0..<16
+    {
+        data[2 + i] = u8(i + 1)
+    }
+
+    value, consumed, ok := decode(data)
+    expected := Ext{0, data[2:]}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 18)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_d4_no_type :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd4}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_ext_d4_no_data :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd4, 0x01}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_ext_d6_data_short :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd6, 0x01, 0x01, 0x02}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_ext_d4_trailing :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xd4, 0x01, 0x05, 0x99}
+    value, consumed, ok := decode(data)
+    expected := Ext{1, {5}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 3)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_8 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc7, 0x02, 0x07, 0xaa, 0xbb}
+    value, consumed, ok := decode(data)
+    expected := Ext{7, {0xaa, 0xbb}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 5)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_16 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc8, 0x00, 0x01, 0x07, 0x05}
+    value, consumed, ok := decode(data)
+    expected := Ext{7, {5}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 5)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_16_trailing :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc8, 0x00, 0x01, 0x07, 0x05, 0x99}
+    value, consumed, ok := decode(data)
+    expected := Ext{7, {5}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 5)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_32 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc9, 0x00, 0x00, 0x00, 0x01, 0x02, 0x06}
+    value, consumed, ok := decode(data)
+    expected := Ext{2, {6}}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 7)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_ext_32_hostile_length :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc9, 0xff, 0xff, 0xff, 0xff, 0x01, 0x05}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_ext_32_no_type :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc9, 0x00, 0x00, 0x00, 0x01}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_ext_16_missing_data :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc8, 0x00, 0x01, 0x07}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}

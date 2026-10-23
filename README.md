@@ -9,7 +9,7 @@ Currently in development. It only opens a window and renders text. No Neovim int
 Fast startup, fast file open and edit, fast compile time, Windows and macOS.
 
 ## Requirements
-Odin (dev-2026-01) and Neovim 0.9+ on your PATH (once implemented), and the SDL2_ttf and SDL2 DLL files in Odin's vendor folder for Windows.
+Odin (dev-2026-10:779c8c0a4) and Neovim 0.9+ on your PATH (once implemented), and the SDL2_ttf and SDL2 DLL files in Odin's vendor folder for Windows.
 
 The build.bat expects Odin at C:\Odin (not yet set up as an environment variable in build.bat). Edit the paths if yours is elsewhere.
 

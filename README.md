@@ -8,13 +8,30 @@ Currently in development. It only opens a window and renders text. No Neovim int
 ## Goals
 Fast startup, fast file open and edit, fast compile time, Windows and macOS.
 
-## Requirements
+## Building on Fedora
+Install the dependencies
+```
+sudo dnf install llvm-devel clang sdl2-compat-devel SDL2_ttf-devel neovim
+```
+
+Build Odin from source and add it to your PATH:
+```
+git clone https://github.com/odin-lang/Odin ~/Odin
+cd ~/Odin && ./build_odin.sh release
+echo 'export PATH="$HOME/Odin:$PATH"' >> ~/.bashrc
+```
+
+Then build and run Werevim from the repo folder:
+```
+./build.sh
+./werevim
+```
+
+## Building on Windows
 Odin (dev-2026-10:779c8c0a4) and Neovim 0.9+ on your PATH (once implemented), and the SDL2_ttf and SDL2 DLL files in Odin's vendor folder for Windows.
 
 The build.bat expects Odin at C:\Odin (not yet set up as an environment variable in build.bat). Edit the paths if yours is elsewhere.
 
-## Build
-How to build on Windows:
 ```
 .\build.bat
 .\werevim.exe

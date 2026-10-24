@@ -6,4 +6,5 @@
 *.ilk
 vendor/nvim/
 werevim
+ols.json
 

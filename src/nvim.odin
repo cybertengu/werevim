@@ -75,6 +75,36 @@ nvim_start :: proc() -> (nvim : Nvim, ok : bool)
 
 nvim_stop :: proc(nvim : ^Nvim)
 {
+    args := Array{Value(string("qa!"))}
+    nvim_request(nvim, "nvim_command", args)
+    timeout := time.Second * 2
+    state, err := os.process_wait(nvim.process, timeout)
+    if err != nil
+    {
+        fmt.eprintfln("Something went wrong asking Neovim to quit: %v", err)
+    }
+
+    if err == .Timeout
+    {
+        fmt.eprintfln("Neovim failed to quit: %v", err)
+        err1 := os.process_kill(nvim.process)
+        if err1 != nil
+        {
+            fmt.eprintfln("Cannot kill the neovim process: %v", err1)
+        }
+        
+        _, err2 := os.process_wait(nvim.process, timeout)
+        if err2 != nil
+        {
+            fmt.eprintfln("Couldn't kill the neovim process in time: %v", err2)
+        }
+    }
+    
+    if state.exit_code != 0
+    {
+        fmt.eprintfln("Neovim couldn't exit by Neovim getting the quit command: %v", state.exit_code)
+    }
+    
     error_to := os.close(nvim.to_nvim)
     if error_to != nil
     {
@@ -85,32 +115,6 @@ nvim_stop :: proc(nvim : ^Nvim)
     if error_from != nil
     {
         fmt.eprintfln("Something went wrong closing the from-nvim pipe: %v", error_from)
-    }
-
-    timeout := time.Second * 2
-    state1, err1 := os.process_wait(nvim.process, timeout)
-    if err1 == os.General_Error.Timeout
-    {
-        fmt.eprintfln("Neovim didn't exit by itself in time, so will kill process: %v", err1)
-        kill_error := os.process_kill(nvim.process)
-        if kill_error != nil
-        {
-            fmt.eprintfln("Something went wrong killing the process: %v", kill_error)
-        }
-
-        _, err3 := os.process_wait(nvim.process, timeout)
-        if err3 == os.General_Error.Timeout
-        {
-            fmt.eprintfln("Something went wrong waiting for the kill process step: %v", err3)
-        }
-    }
-    else if err1 != nil
-    {
-        fmt.eprintfln("Waiting for process to close failed: %v", err1)
-    }
-    else if state1.exit_code != 0
-    {
-        fmt.eprintfln("Neovim exited with code %d", state1.exit_code)
     }
 }
 

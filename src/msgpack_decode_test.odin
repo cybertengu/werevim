@@ -1381,6 +1381,19 @@ test_decode_bin8_data_cut_off :: proc(t : ^testing.T)
 }
 
 @(test)
+test_decode_bin8_empty :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc4, 0x00}
+    value, consumed, ok := decode(data)
+    expected := Bin{}
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 2)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
 test_decode_bin16_header_cut_off :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)

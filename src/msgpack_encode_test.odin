@@ -579,9 +579,3 @@ test_encode_string_256 :: proc(t : ^testing.T)
     }
     testing.expectf(t, slice.equal(buf[:], expected), "expected %x, got %x", expected, buf[:])
 }
-
-@(test)
-test_encode_value_i64 :: proc(t : ^testing.T)
-{
-    
-}

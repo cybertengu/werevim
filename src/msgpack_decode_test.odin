@@ -1274,3 +1274,118 @@ test_decode_ext_16_missing_data :: proc(t : ^testing.T)
 
     testing.expect(t, !ok)
 }
+
+@(test)
+test_decode_f32 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xca, 0x3f, 0xc0, 0x00, 0x00}
+    value, consumed, ok := decode(data)
+    expected := Value(f64(1.5))
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 5)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_f64 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xcb, 0x3f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+    value, consumed, ok := decode(data)
+    expected := Value(f64(1.5))
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 9)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_f64_short :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xcb, 0x3f, 0xf8}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_f32_short :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xca, 0x3f, 0xc0}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_bin8 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc4, 0x03, 0x01, 0x02, 0x03}
+    value, consumed, ok := decode(data)
+    expected := Value(Bin{1, 2, 3})
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 5)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_bin16 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc5, 0x00, 0x03, 0x01, 0x02, 0x03}
+    value, consumed, ok := decode(data)
+    expected := Value(Bin{1, 2, 3})
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 6)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_bin32 :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc6, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03}
+    value, consumed, ok := decode(data)
+    expected := Value(Bin{1, 2, 3})
+
+    testing.expect(t, ok)
+    testing.expect_value(t, consumed, 8)
+    expect_values_equal(t, value, expected)
+}
+
+@(test)
+test_decode_bin8_header_cut_off :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc4}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_bin16_header_cut_off :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc5, 0x00, 0x03}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}
+
+@(test)
+test_decode_bin32_cut_off :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    data := []u8{0xc6, 0x00, 0x00, 0x00}
+    _, _, ok := decode(data)
+
+    testing.expect(t, !ok)
+}

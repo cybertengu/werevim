@@ -19,11 +19,12 @@ Value :: union
     bool,
     i64,
     u64,
-    //f64,
+    f64,
     string,
     Array,
     Map,
     Ext,
+    Bin,
 }
 
 Nil :: struct
@@ -33,6 +34,7 @@ Nil :: struct
 
 Array :: []Value
 Map :: []Pair
+Bin :: distinct []u8
 
 Pair :: struct
 {

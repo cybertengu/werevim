@@ -141,6 +141,8 @@ encode_value :: proc(buf : ^[dynamic]u8, v : Value)
                 append(buf, 0xcf)
                 write_be(buf, value, 8)
             }
+        case f64:
+            assert(false, "encode_value: encoding f64 is not supported yet.")
         case string:
             encode_string(buf, v.(string))
         case Array:
@@ -158,7 +160,9 @@ encode_value :: proc(buf : ^[dynamic]u8, v : Value)
             }
         case Ext:
             assert(false, "encode_value: encoding Ext is not supported yet.")
+        case Bin:
+            assert(false, "enocde_value: encoding to binary is not supported yet.")
         case:
-            assert(false, "encode_value: empty Value")
+            assert(false, "encode_value: empty Value.")
     }
 }

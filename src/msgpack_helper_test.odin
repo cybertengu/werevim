@@ -21,6 +21,9 @@ values_equal :: proc(a, b : Value) -> bool
         case u64:
             y, ok := b.(u64)
             return ok && x == y
+        case f64:
+            y, ok := b.(f64)
+            return ok && x == y
         case string:
             y, ok := b.(string)
             return ok && x == y
@@ -71,6 +74,9 @@ values_equal :: proc(a, b : Value) -> bool
             }
 
             return slice.equal(x.data, y.data) && x.type == y.type
+        case Bin:
+            y, ok := b.(Bin)
+            return ok && slice.equal(x, y)
         case:
             return b == nil
     }

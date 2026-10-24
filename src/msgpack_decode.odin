@@ -386,6 +386,94 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             value = Ext{i8(data[1]), raw}
             consumed = headerSize + n
             ok = true
+        case 0xca:
+            // float 32
+            payload := 4
+            if len(data) < 1 + payload
+            {
+                ok = false
+                return
+            }
+
+            bits := u32(read_be(data[1:], payload))
+            f := transmute(f32)bits
+            value = f64(f)
+            consumed = 5
+            ok = true
+        case 0xcb:
+            // float 64
+            payload := 8
+            if len(data) < 1 + payload
+            {
+                ok = false
+                return
+            }
+
+            raw := read_be(data[1:], payload)
+            f := transmute(f64)raw
+            value = f
+            consumed = 9
+            ok = true
+        case 0xc4:
+            // bin 8
+            headerSize := 2
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+
+            n := int(read_be(data[1:], headerSize - 1))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Bin(raw)
+            consumed = headerSize + n
+            ok = true
+        case 0xc5:
+            // bin 16
+            headerSize := 3
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+
+            n := int(read_be(data[1:], headerSize - 1))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Bin(raw)
+            consumed = headerSize + n
+            ok = true
+        case 0xc6:
+            // bin 32
+            headerSize := 5
+            if len(data) < headerSize
+            {
+                ok = false
+                return
+            }
+
+            n := int(read_be(data[1:], headerSize - 1))
+            if len(data) < headerSize + n
+            {
+                ok = false
+                return
+            }
+
+            raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
+            value = Bin(raw)
+            consumed = headerSize + n
+            ok = true
         case:
             fmt.eprintfln("decode did not handle this case: 0x%02x", data[0])
             ok = false

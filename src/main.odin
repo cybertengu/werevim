@@ -9,10 +9,12 @@ SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
 
 app : App
+NVIM_EVENT : u32
 
 main :: proc()
 {
-    running : bool = true
+    app = {}
+    defer reader_stop(&app.reader)
     event : sdl2.Event
     nvim, ok := nvim_start()
     if !ok
@@ -20,10 +22,12 @@ main :: proc()
         fmt.eprintln("Couldn't set up Neovim.")
         os.exit(1)
     }
-    defer nvim_stop(&nvim)
+    app.nvim = nvim
+    defer nvim_stop(&app.nvim)
 
     initSDL()
     defer cleanup()
+    NVIM_EVENT = sdl2.RegisterEvents(1) // Return my own event type number.
 
     initFont(FONT_FILENAME)
 
@@ -31,57 +35,30 @@ main :: proc()
         Pair{Value(string("ext_linegrid")), Value(bool(true))},
         Pair{Value(string("rgb")), Value(bool(true))},
     },}
-    msgid, result := nvim_request(&nvim, "nvim_ui_attach", args)
+    _, result := nvim_request(&app.nvim, "nvim_ui_attach", args)
     if !result
     {
         fmt.eprintln("Couldn't set a request to Neovim")
         os.exit(1)
     }
-    fmt.println(msgid)
-    chunk : [4096]byte
-    pending : [dynamic]u8
-    defer delete(pending)
-    counter : int
-    for counter < 10
-    {
-        counter += 1
-        n, err := os.read(nvim.from_nvim, chunk[:])
-        if err != nil
-        {
-            fmt.eprintfln("%v", err)
-            break
-        }
 
-        append(&pending, ..chunk[:n])
-        value, consumed, ok := decode(pending[:])
-        if ok == .Ok
-        {
-            fmt.printfln("%v", value)
-            copy(pending[:], pending[consumed:])
-            resize(&pending, len(pending) - consumed)
-        }
-        else
-        {
-            break
-        }
-        free_all(context.temp_allocator)
+    reader_start(&app.reader, &app.nvim, NVIM_EVENT)
+    app.is_running = true
+    defer delete(app.pending)
+    if app.reader.thread == nil
+    {
+        fmt.eprintln("Couldn't start the thread.")
+        return
     }
 
-    for running
+    for app.is_running
     {
+        sdl2.WaitEvent(&event)
+        handle_event(event, &app)
+
         for sdl2.PollEvent(&event)
         {
-            #partial switch event.type
-            {
-                case sdl2.EventType.QUIT:
-                    running = false
-
-                case sdl2.EventType.KEYDOWN:
-                    if event.key.keysym.sym == sdl2.Keycode.ESCAPE
-                    {
-                        running = false
-                    }
-            }
+            handle_event(event, &app)
         }
         
         sdl2.SetRenderDrawColor(app.renderer, 8, 8, 8, 255)
@@ -94,10 +71,42 @@ main :: proc()
     }
 }
 
+handle_event :: proc(event : sdl2.Event, app : ^App)
+{
+    if u32(event.type) == NVIM_EVENT
+    {
+        // TODO(David): Finish this up.
+        reader_take_bytes(&app.reader, &app.pending)
+        
+        messages : [dynamic]Value
+        defer delete(messages)
+        status := drain_messages(&app.pending, &messages)
+        fmt.println("messages", len(messages), status) // TODO(David): Temporay printing.
+        free_all(context.temp_allocator)
+        return
+    }
+
+    #partial switch event.type
+    {
+        case sdl2.EventType.QUIT:
+            app.is_running = false
+
+        case sdl2.EventType.KEYDOWN:
+            if event.key.keysym.sym == sdl2.Keycode.ESCAPE
+            {
+                app.is_running = false
+            }
+    }
+}
+
 App :: struct
 {
     window : ^sdl2.Window,
     renderer : ^sdl2.Renderer,
+    reader : Reader,
+    nvim : Nvim,
+    is_running : bool,
+    pending : [dynamic]u8,
 }
 
 initSDL :: proc()

@@ -100,7 +100,7 @@ nvim_stop :: proc(nvim : ^Nvim)
     
     if state.exit_code != 0
     {
-        fmt.eprintfln("Neovim couldn't exit by Neovim getting the quit command: %v", state.exit_code)
+        fmt.eprintfln("Neovim exited, but saw an error: %v", state.exit_code)
     }
     
     error_to := os.close(nvim.to_nvim)

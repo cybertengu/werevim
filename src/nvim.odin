@@ -3,10 +3,6 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:time"
-when ODIN_OS == .Windows
-{
-    import win "core:sys/windows"
-}
 
 Nvim :: struct
 {
@@ -49,8 +45,7 @@ nvim_start :: proc() -> (nvim : Nvim, ok : bool)
     
     when ODIN_OS == .Windows
     {
-        win.SetHandleInformation(win.HANDLE(os.fd(a_w)), win.HANDLE_FLAG_INHERIT, 0)
-        win.SetHandleInformation(win.HANDLE(os.fd(b_r)), win.HANDLE_FLAG_INHERIT, 0)
+        make_parent_ends_private(a_w, b_r)
     }
 
     outcome : os.Error

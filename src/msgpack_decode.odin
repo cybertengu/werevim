@@ -4,11 +4,11 @@ import "core:fmt"
 import "core:strings"
 import "core:slice"
 
-decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
+decode :: proc(data : []u8) -> (value : Value, consumed : int, decode_status : Decode_Status)
 {
     if len(data) == 0
     {
-        ok = false
+        decode_status = .Need_More
         return
     }
 
@@ -18,34 +18,38 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             // positive fixint
             value = i64(data[0])
             consumed = 1
-            ok = true
+            decode_status = .Ok
         case 0xe0..=0xff:
             // negative fixint
             value = i64(i8(data[0]))
             consumed = 1
-            ok = true
+            decode_status = .Ok
         case 0xc0:
             // nil
             value = Value(Nil{})
             consumed = 1
-            ok = true
+            decode_status = .Ok
         case 0xc2:
             // boolean
             value = Value(bool(false))
             consumed = 1
-            ok = true
+            decode_status = .Ok
         case 0xc3:
             // boolean
             value = Value(bool(true))
             consumed = 1
-            ok = true
+            decode_status = .Ok
         case 0xcd:
             if len(data) >= 3
             {
                 raw := read_be(data[1:], 2)
                 value = i64(raw)
                 consumed = 3
-                ok = true
+                decode_status = .Ok
+            }
+            else
+            {
+                decode_status = .Need_More
             }
         case 0xd0:
             // int8
@@ -54,7 +58,11 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
                 raw := read_be(data[1:], 1)
                 value = i64(i8(raw))
                 consumed = 2
-                ok = true
+                decode_status = .Ok
+            }
+            else
+            {
+                decode_status = .Need_More
             }
         case 0xd1:
             // int16
@@ -63,208 +71,230 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
                 raw := read_be(data[1:], 2)
                 value = i64(i16(raw))
                 consumed = 3
-                ok = true
+                decode_status = .Ok
+            }
+            else
+            {
+                decode_status = .Need_More
             }
         case 0xa0..=0xbf:
             // fixstr
             n := int(data[0] & 0x1f)
             if len(data) < n + 1
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             s := string(data[1:n + 1])
             value = strings.clone(s, context.temp_allocator)
             consumed = n + 1
-            ok = true
+            decode_status = .Ok
         case 0xd9:
             // str 8
             headerSize := 2
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             s := string(data[headerSize : headerSize + n])
             value = strings.clone(s, context.temp_allocator)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xda:
             // str 16
             headerSize := 3
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             s := string(data[headerSize : headerSize + n])
             value = strings.clone(s, context.temp_allocator)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xdb:
             // str 32
             headerSize := 5
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             n := int(read_be(data[1:], headerSize - 1))
+            if n > MAX_LENGTH
+            {
+                decode_status = .Invalid
+                return
+            }
+
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             s := string(data[headerSize : headerSize + n])
             value = strings.clone(s, context.temp_allocator)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0x90..=0x9f:
             // fixarray
             n := int(data[0] & 0x0f)
             headerSize := 1
             if n > len(data) - headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_array_body(data, headerSize, n)
+            value, consumed, decode_status = decode_array_body(data, headerSize, n)
         case 0xdc:
             // array 16
             headerSize := 3
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if n > len(data) - headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_array_body(data, headerSize, n)
+            value, consumed, decode_status = decode_array_body(data, headerSize, n)
         case 0xdd:
             // array 32
             headerSize := 5
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
+            if n > MAX_LENGTH
+            {
+                decode_status = .Invalid
+                return
+            }
+ 
             if n > len(data) - headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_array_body(data, headerSize, n)
+            value, consumed, decode_status = decode_array_body(data, headerSize, n)
         case 0x80..=0x8f:
             // fixmap
             // For now, we will have a defined order.
             headerSize := 1
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(data[0] & 0x0f)
             if n > (len(data) - headerSize) / 2
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_Map_body(data, headerSize, n)
+            value, consumed, decode_status = decode_Map_body(data, headerSize, n)
         case 0xde:
             // map 16
             headerSize := 3
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if n > (len(data) - headerSize) / 2
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_Map_body(data, headerSize, n)
+            value, consumed, decode_status = decode_Map_body(data, headerSize, n)
         case 0xdf:
             // map 32
             headerSize := 5
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
+            if n > MAX_LENGTH
+            {
+                decode_status = .Invalid
+                return
+            }
+
             if n > (len(data) - headerSize) / 2
             {
-                ok = false
+                decode_status = .Need_More
                 return 
             }
 
-            value, consumed, ok = decode_Map_body(data, headerSize, n)
+            value, consumed, decode_status = decode_Map_body(data, headerSize, n)
         case 0xcc:
             // uint8
             payload := 1
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             value = i64(read_be(data[1:], payload))
             consumed = 2
-            ok = true
+            decode_status = .Ok
         case 0xce:
             // uint32
             payload := 4
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             value = i64(read_be(data[1:], payload))
             consumed = 5
-            ok = true
+            decode_status = .Ok
         case 0xcf:
             // uint64 - will be tricky, since I use i64.
             payload := 8
             if len(data) < 1 + payload
             {
-                    ok = false
+                    decode_status = .Need_More
                     return
             }
             
@@ -280,118 +310,124 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             }
 
             consumed = 9
-            ok = true
+            decode_status = .Ok
         case 0xd2:
             // int32
             payload := 4
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             raw := read_be(data[1:], payload)
             value = i64(i32(raw))
             consumed = 5
-            ok = true
+            decode_status = .Ok
         case 0xd3:
             // int64
             payload := 8
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             value = i64(read_be(data[1:], payload))
             consumed = 9
-            ok = true
+            decode_status = .Ok
         case 0xc7:
             // ext 8
             headerSize := 3
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             n := int(read_be(data[1:], headerSize - 2))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Ext{i8(data[headerSize - 1]), raw}
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xc8:
             // ext 16
             headerSize := 4
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             n := int(read_be(data[1:], headerSize - 2))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Ext{i8(data[headerSize - 1]), raw}
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xc9:
             // ext 32
             headerSize := 6
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             n := int(read_be(data[1:], headerSize - 2))
+            if n > MAX_LENGTH
+            {
+                decode_status = .Invalid
+                return
+            }
+
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Ext{i8(data[headerSize - 1]), raw}
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xd4..=0xd8:
             // fixext
             headerSize := 2
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
             
             n := 1 << uint(data[0] - 0xd4)
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Ext{i8(data[1]), raw}
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xca:
             // float 32
             payload := 4
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
@@ -399,13 +435,13 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             f := transmute(f32)bits
             value = f64(f)
             consumed = 5
-            ok = true
+            decode_status = .Ok
         case 0xcb:
             // float 64
             payload := 8
             if len(data) < 1 + payload
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
@@ -413,70 +449,76 @@ decode :: proc(data : []u8) -> (value : Value, consumed : int, ok : bool)
             f := transmute(f64)raw
             value = f
             consumed = 9
-            ok = true
+            decode_status = .Ok
         case 0xc4:
             // bin 8
             headerSize := 2
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Bin(raw)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xc5:
             // bin 16
             headerSize := 3
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Bin(raw)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case 0xc6:
             // bin 32
             headerSize := 5
             if len(data) < headerSize
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             n := int(read_be(data[1:], headerSize - 1))
+            if n > MAX_LENGTH
+            {
+                decode_status = .Invalid
+                return
+            }
+
             if len(data) < headerSize + n
             {
-                ok = false
+                decode_status = .Need_More
                 return
             }
 
             raw := slice.clone(data[headerSize : headerSize + n], context.temp_allocator)
             value = Bin(raw)
             consumed = headerSize + n
-            ok = true
+            decode_status = .Ok
         case:
             fmt.eprintfln("decode did not handle this case: 0x%02x", data[0])
-            ok = false
+            decode_status = .Invalid
     }
     
     return
@@ -496,16 +538,16 @@ read_be :: proc(data : []u8, n : int) -> u64
     return accumulator
 }
 
-decode_array_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, consumed : int, ok : bool)
+decode_array_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, consumed : int, decode_status : Decode_Status)
 {
     arr := make([]Value, n, context.temp_allocator)
     offset := headerSize
     for i := 0; i < n; i += 1
     {
-        element, used, element_ok := decode(data[offset:])
-        if !element_ok
+        element, used, element_decode_status := decode(data[offset:])
+        if element_decode_status != .Ok
         {
-            ok = false
+            decode_status = element_decode_status
             return
         }
 
@@ -515,29 +557,29 @@ decode_array_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, c
     
     value = arr
     consumed = offset
-    ok = true
+    decode_status = .Ok
 
     return
 }
 
-decode_Map_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, consumed : int, ok : bool)
+decode_Map_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, consumed : int, decode_status : Decode_Status)
 {
     pairs := make([]Pair, n, context.temp_allocator)
     offset := headerSize
     for i := 0; i < n; i += 1
     {
-        key, used, key_ok := decode(data[offset:])
-        if !key_ok
+        key, used, key_decode_status := decode(data[offset:])
+        if key_decode_status != .Ok
         {
-            ok = false
+            decode_status = key_decode_status
             return
         }
 
         offset += used
-        val, val_used, value_ok := decode(data[offset:])
-        if !value_ok
+        val, val_used, value_decode_status := decode(data[offset:])
+        if value_decode_status != .Ok
         {
-            ok = false
+            decode_status = value_decode_status
             return
         }
 
@@ -547,7 +589,7 @@ decode_Map_body :: proc(data : []u8, headerSize, n : int) -> (value : Value, con
 
     value = Map(pairs)
     consumed = offset
-    ok = true
+    decode_status = .Ok
 
     return
 }

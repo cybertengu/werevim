@@ -10,7 +10,7 @@ round_trip :: proc(t : ^testing.T, original : Value, loc := #caller_location)
     encode_value(&buf, original)
     actual, consumed, ok := decode(buf[:])
 
-    testing.expect(t, ok)
+    testing.expect_value(t, ok, .Ok)
     testing.expect_value(t, consumed, len(buf))
     expect_values_equal(t, actual, original, loc = loc)
 }
@@ -81,7 +81,7 @@ test_round_trip_uint64_to_i64 :: proc(t : ^testing.T)
     encode_value(&buf, original)
     actual, consumed, ok := decode(buf[:])
 
-    testing.expect(t, ok)
+    testing.expect_value(t, ok, .Ok)
     testing.expect_value(t, consumed, len(buf))
 
     // This is expected behavior to get back a i64 version

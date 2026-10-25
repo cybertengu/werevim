@@ -46,3 +46,12 @@ Ext :: struct
     type : i8,
     data : []u8,
 }
+
+Decode_Status :: enum
+{
+    Invalid,    
+    Ok,
+    Need_More,
+}
+
+MAX_LENGTH :: 64 * 1024 * 1024

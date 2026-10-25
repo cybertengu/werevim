@@ -54,7 +54,7 @@ main :: proc()
 
         append(&pending, ..chunk[:n])
         value, consumed, ok := decode(pending[:])
-        if ok
+        if ok == .Ok
         {
             fmt.printfln("%v", value)
             copy(pending[:], pending[consumed:])

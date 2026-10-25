@@ -3,6 +3,10 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:time"
+when ODIN_OS == .Windows
+{
+    import win "core:sys/windows"
+}
 
 Nvim :: struct
 {

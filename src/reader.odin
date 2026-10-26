@@ -3,7 +3,6 @@ package main
 import "core:thread"
 import "core:sync"
 import "core:os"
-import "core:fmt"
 import "vendor:sdl2"
 
 Reader :: struct
@@ -42,9 +41,10 @@ reader_proc :: proc(reader : ^Reader)
         n, err := os.read(reader.nvim.from_nvim, chunk[:])
         if err != nil || n == 0
         {
-            // Push a quit event.
+            // Neovim exited.
             event : sdl2.Event
-            event.type = .QUIT
+            event.type = sdl2.EventType(reader.event_type)
+            event.user.code = NVIM_EXITED
             sdl2.PushEvent(&event)
             return
         }
@@ -52,7 +52,6 @@ reader_proc :: proc(reader : ^Reader)
         sync.lock(&reader.mutex)
         append(&reader.bytes, ..chunk[:n])
         sync.unlock(&reader.mutex)
-        fmt.println("read", n, "bytes") // TODO(David): Temporary to see if this is called.
         event : sdl2.Event
         event.type = sdl2.EventType(reader.event_type)
         sdl2.PushEvent(&event)

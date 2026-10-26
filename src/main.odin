@@ -8,6 +8,9 @@ import "core:fmt"
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
 
+NVIM_BYTES :: 0
+NVIM_EXITED :: 1
+
 app : App
 NVIM_EVENT : u32
 
@@ -38,7 +41,7 @@ main :: proc()
     _, result := nvim_request(&app.nvim, "nvim_ui_attach", args)
     if !result
     {
-        fmt.eprintln("Couldn't set a request to Neovim")
+        fmt.eprintln("Couldn't send a request to Neovim")
         os.exit(1)
     }
 
@@ -50,6 +53,8 @@ main :: proc()
         fmt.eprintln("Couldn't start the thread.")
         return
     }
+    
+    app.needs_redraw = true
 
     for app.is_running
     {
@@ -61,13 +66,17 @@ main :: proc()
             handle_event(event, &app)
         }
         
-        sdl2.SetRenderDrawColor(app.renderer, 8, 8, 8, 255)
-        sdl2.RenderClear(app.renderer)
+        if app.needs_redraw
+        {
+            sdl2.SetRenderDrawColor(app.renderer, 8, 8, 8, 255)
+            sdl2.RenderClear(app.renderer)
 
-        dst := sdl2.Rect{x = 20, y = 20, w = FONT_TEXTURE_SIZE, h = FONT_TEXTURE_SIZE}
-        sdl2.RenderCopy(app.renderer, fontTexture, nil, &dst)
+            dst := sdl2.Rect{x = 20, y = 20, w = FONT_TEXTURE_SIZE, h = FONT_TEXTURE_SIZE}
+            sdl2.RenderCopy(app.renderer, fontTexture, nil, &dst)
 
-        sdl2.RenderPresent(app.renderer)
+            sdl2.RenderPresent(app.renderer)
+            app.needs_redraw = false
+        }
     }
 }
 
@@ -75,14 +84,30 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
 {
     if u32(event.type) == NVIM_EVENT
     {
+        if event.user.code == NVIM_EXITED
+        {
+            app.nvim.exited = true
+            app.is_running = false
+            return
+        }
+
         // TODO(David): Finish this up.
         reader_take_bytes(&app.reader, &app.pending)
         
         messages : [dynamic]Value
         defer delete(messages)
         status := drain_messages(&app.pending, &messages)
-        fmt.println("messages", len(messages), status) // TODO(David): Temporay printing.
+
+        for msg in messages
+        {
+            handle_message(msg)
+        }
         free_all(context.temp_allocator)
+        
+        if status == .Invalid
+        {
+            fmt.eprintfln("Byte stream is broken.")
+        }
         return
     }
 
@@ -96,6 +121,12 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
             {
                 app.is_running = false
             }
+        case sdl2.EventType.WINDOWEVENT:
+            #partial switch event.window.event
+            {
+                case .EXPOSED, .SIZE_CHANGED, .SHOWN, .RESTORED:
+                    app.needs_redraw = true
+            }
     }
 }
 
@@ -107,6 +138,7 @@ App :: struct
     nvim : Nvim,
     is_running : bool,
     pending : [dynamic]u8,
+    needs_redraw : bool,
 }
 
 initSDL :: proc()

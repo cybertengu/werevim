@@ -13,6 +13,7 @@ Grid :: struct
 {
     width, height : int,
     cells : []Cell, // One flat array: index = row * width + col,
+    cursor_row, cursor_col : int,
 }
 
 grid_resize :: proc(grid : ^Grid, width, height : int)
@@ -121,5 +122,34 @@ grid_dump :: proc(grid : ^Grid)
         }
 
         fmt.println()
+    }
+}
+
+grid_scroll :: proc(grid : ^Grid, top, bot, left, right, rows : int)
+{
+    if rows == 0  do return
+    if top < 0 || bot > grid.height do return
+    if left < 0 || right > grid.width do return
+    if top >= bot || left >= right do return
+
+    if rows > 0
+    {
+        for row in top ..< bot - rows
+        {
+            src := row + rows
+            dst := grid.cells[row * grid.width + left : row * grid.width + right]
+            s := grid.cells[src * grid.width + left : src * grid.width + right]
+            copy(dst, s)
+        }
+    }
+    else
+    {
+        for row := bot - 1; row >= top - rows; row -= 1
+        {
+            src := row + rows
+            dst := grid.cells[row * grid.width + left : row * grid.width + right]
+            s := grid.cells[src * grid.width + left : src * grid.width + right]
+            copy(dst, s)
+        }
     }
 }

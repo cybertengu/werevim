@@ -151,7 +151,39 @@ handle_message :: proc(grid : ^Grid, msg : Value)
                                 grid_clear(grid)
                             case "flush":
                                 grid_dump(grid)
-                            case "option_set", "set_icon", "set_title", "chdir", "hl_attr_define", "hl_group_set", "update_menu", "default_colors_set", "grid_cursor_goto", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
+                            case "option_set", "set_icon", "set_title", "chdir", "hl_attr_define", "hl_group_set", "update_menu", "default_colors_set", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
+                            case "grid_scroll":
+                                if len(args) < 6
+                                {
+                                    continue
+                                }
+
+                                top, is_top_i64 := args[1].(i64)
+                                bot, is_bot_i64 := args[2].(i64)
+                                left, is_left_i64 := args[3].(i64)
+                                right, is_right_i64 := args[4].(i64)
+                                rows, is_rows_i64 := args[5].(i64)
+                                if !is_top_i64 || !is_bot_i64 || !is_left_i64 || !is_right_i64 || !is_rows_i64
+                                {
+                                    continue
+                                }
+                                
+                                grid_scroll(grid, int(top), int(bot), int(left), int(right), int(rows))
+                            case "grid_cursor_goto":
+                                if len(args) < 3
+                                {
+                                    continue
+                                }
+                                
+                                row, is_row := args[1].(i64)
+                                col, is_col := args[2].(i64)
+                                if !is_row || !is_col
+                                {
+                                    continue
+                                }
+                                
+                                grid.cursor_row = int(row)
+                                grid.cursor_col = int(col)
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

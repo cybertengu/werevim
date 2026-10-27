@@ -193,3 +193,98 @@ test_grid_line_wide_char :: proc(t : ^testing.T)
     testing.expect_value(t, grid.cells[0], Cell{'\u6f22', 1})
     testing.expect_value(t, grid.cells[1], Cell{0, 1})
 }
+
+@(test)
+test_grid_scroll_up_by_1 :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+
+    grid_scroll(&grid, 0, 4, 0, 3, 1)
+    
+    expect_row(t, &grid, 0, "bbb")
+    expect_row(t, &grid, 1, "ccc")
+    expect_row(t, &grid, 2, "ddd")
+}
+
+@(test)
+test_grid_scroll_down_by_1 :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+
+    grid_scroll(&grid, 0, 4, 0, 3, -1)
+    
+    expect_row(t, &grid, 1, "aaa")
+    expect_row(t, &grid, 2, "bbb")
+    expect_row(t, &grid, 3, "ccc")
+}
+
+@(test)
+test_grid_scroll_up_by_2 :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+
+    grid_scroll(&grid, 0, 4, 0, 3, 2)
+    
+    expect_row(t, &grid, 0, "ccc")
+    expect_row(t, &grid, 1, "ddd")
+}
+
+@(test)
+test_grid_scroll_inner_region :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+
+    grid_scroll(&grid, 1, 3, 0, 3, 1)
+    
+    expect_row(t, &grid, 0, "aaa")
+    expect_row(t, &grid, 1, "ccc")
+    expect_row(t, &grid, 3, "ddd")
+}
+
+@(test)
+test_grid_scroll_partial_width :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+
+    grid_scroll(&grid, 0, 4, 1, 3, 1)
+    
+    expect_row(t, &grid, 0, "abb")
+    expect_row(t, &grid, 1, "bcc")
+    expect_row(t, &grid, 2, "cdd")
+    expect_row(t, &grid, 3, "d")
+}

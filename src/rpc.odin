@@ -27,7 +27,7 @@ drain_messages :: proc(pending : ^[dynamic]u8, messages : ^[dynamic]Value) -> De
     return decode_status
 }
 
-handle_message :: proc(msg : Value)
+handle_message :: proc(grid : ^Grid, msg : Value)
 {
     array, ok := msg.(Array)
     if !ok
@@ -107,8 +107,55 @@ handle_message :: proc(msg : Value)
                         fmt.eprintfln("Name wasn't a string: %v", batch[0])
                         return
                     }
+                    
+                    for element in batch[1:]
+                    {
+                        args, is_array := element.(Array)
+                        if !is_array
+                        {
+                            continue
+                        }
+                        
+                        switch name
+                        {
+                            case "grid_resize":
+                                if len(args) < 3
+                                {
+                                    continue
+                                }
+                                
+                                width, is_width := args[1].(i64)
+                                height, is_height := args[2].(i64)
+                                if !is_width || !is_height
+                                {
+                                    continue   
+                                }
+                                
+                                grid_resize(grid, int(width), int(height))
+                            case "grid_line":
+                                if len(args) < 4
+                                {
+                                    continue
+                                }
+                                
+                                row, is_row_i64 := args[1].(i64)
+                                col, is_col_i64 := args[2].(i64)
+                                cells, is_cells := args[3].(Array)
+                                if !is_row_i64 || !is_col_i64 || !is_cells
+                                {
+                                    continue
+                                }
 
-                    fmt.printfln("Message was sent: %s", name)
+                                grid_line(grid, int(row), int(col), cells)
+                            case "grid_clear":
+                                grid_clear(grid)
+                            case "flush":
+                                grid_dump(grid)
+                            case "option_set", "set_icon", "set_title", "chdir", "hl_attr_define", "hl_group_set", "update_menu", "default_colors_set", "grid_cursor_goto", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
+                            case:
+                                fmt.printfln("Didn't handle this name for messages: %s", name)
+                        }
+                    }
                 }
             }
             else

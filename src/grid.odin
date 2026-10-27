@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import "core:unicode/utf8"
 
 Cell :: struct
@@ -24,11 +25,7 @@ grid_resize :: proc(grid : ^Grid, width, height : int)
     grid.cells = make([]Cell, width * height)
     grid.width = width
     grid.height = height
-    
-    for &cell in grid.cells
-    {
-        cell = Cell{' ', 0}
-    }
+    grid_clear(grid)
 }
 
 grid_line :: proc(grid : ^Grid, row, col_start : int, cells : Array)
@@ -57,7 +54,7 @@ grid_line :: proc(grid : ^Grid, row, col_start : int, cells : Array)
 
         if text == ""
         {
-            character = 0 // Right half of a wide characteraracter.
+            character = 0 // Right half of a wide character.
         }
         else
         {
@@ -97,5 +94,32 @@ grid_line :: proc(grid : ^Grid, row, col_start : int, cells : Array)
                 return
             }
         }
+    }
+}
+
+grid_clear :: proc(grid : ^Grid)
+{
+    for &cell in grid.cells
+    {
+        cell = Cell{' ', 0}
+    }
+}
+
+grid_dump :: proc(grid : ^Grid)
+{
+    for row := 0; row < grid.height; row += 1
+    {
+        for height := 0; height < grid.width; height += 1
+        {
+            cell := grid.cells[row * grid.width + height]
+            if cell.character == 0
+            {
+                continue
+            }
+            
+            fmt.print(cell.character)
+        }
+
+        fmt.println()
     }
 }

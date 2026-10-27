@@ -17,6 +17,7 @@ NVIM_EVENT : u32
 main :: proc()
 {
     app = {}
+    defer delete(app.grid.cells)
     defer reader_stop(&app.reader)
     event : sdl2.Event
     nvim, ok := nvim_start()
@@ -100,8 +101,9 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
 
         for msg in messages
         {
-            handle_message(msg)
+            handle_message(&app.grid, msg)
         }
+
         free_all(context.temp_allocator)
         
         if status == .Invalid
@@ -139,6 +141,7 @@ App :: struct
     is_running : bool,
     pending : [dynamic]u8,
     needs_redraw : bool,
+    grid : Grid,
 }
 
 initSDL :: proc()

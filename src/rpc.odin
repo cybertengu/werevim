@@ -27,7 +27,7 @@ drain_messages :: proc(pending : ^[dynamic]u8, messages : ^[dynamic]Value) -> De
     return decode_status
 }
 
-handle_message :: proc(grid : ^Grid, msg : Value)
+handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
 {
     array, ok := msg.(Array)
     if !ok
@@ -151,7 +151,9 @@ handle_message :: proc(grid : ^Grid, msg : Value)
                                 grid_clear(grid)
                             case "flush":
                                 grid_dump(grid)
-                            case "option_set", "set_icon", "set_title", "chdir", "hl_attr_define", "hl_group_set", "update_menu", "default_colors_set", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
+                                index := (grid.height - 2) * grid.width + 0
+                                id := grid.cells[index].highlight_id
+                                fg, bg := highlight_colors(&app.table, id)
                             case "grid_scroll":
                                 if len(args) < 6
                                 {
@@ -184,6 +186,36 @@ handle_message :: proc(grid : ^Grid, msg : Value)
                                 
                                 grid.cursor_row = int(row)
                                 grid.cursor_col = int(col)
+                            case "default_colors_set":
+                                if len(args) < 2
+                                {
+                                    continue
+                                }
+                                
+                                foreground, is_fg := args[0].(i64)
+                                background, is_bg := args[1].(i64)
+                                if !is_fg || !is_bg
+                                {
+                                    continue
+                                }
+                                
+                                table.default_bg = u32(background)
+                                table.default_fg = u32(foreground)
+                            case "hl_attr_define":
+                                if len(args) < 2
+                                {
+                                    continue
+                                }
+
+                                id, is_id := args[0].(i64)
+                                attrs, is_attrs := args[1].(Map)
+                                if !is_id || !is_attrs
+                                {
+                                    continue
+                                }
+                                
+                                hl_attr_define(table, int(id), attrs)
+                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

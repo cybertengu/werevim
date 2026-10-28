@@ -19,6 +19,7 @@ main :: proc()
     app = {}
     defer delete(app.grid.cells)
     defer reader_stop(&app.reader)
+    defer delete(app.table.attrs)
     event : sdl2.Event
     nvim, ok := nvim_start()
     if !ok
@@ -101,7 +102,7 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
 
         for msg in messages
         {
-            handle_message(&app.grid, msg)
+            handle_message(&app.grid, &app.table, msg)
         }
 
         free_all(context.temp_allocator)
@@ -142,6 +143,7 @@ App :: struct
     pending : [dynamic]u8,
     needs_redraw : bool,
     grid : Grid,
+    table : Highlights,
 }
 
 initSDL :: proc()

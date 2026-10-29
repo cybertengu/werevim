@@ -81,3 +81,12 @@ highlight_colors :: proc(table : ^Highlights, id : int) -> (fg, bg : u32)
     
     return
 }
+
+color_rgb :: proc(color : u32) -> (r, g, b : u8)
+{
+    r = u8(color >> 16)
+    g = u8(color >> 8)
+    b = u8(color)
+    
+    return
+}

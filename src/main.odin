@@ -37,7 +37,11 @@ main :: proc()
 
     initFont(FONT_FILENAME)
 
-    args := Array{Value(i64(80)), Value(i64(24)), Map{
+    w, h : i32
+    sdl2.GetRendererOutputSize(app.renderer, &w, &h)
+    cols := w / cell_width
+    rows := h / cell_height
+    args := Array{Value(i64(cols)), Value(i64(rows)), Map{
         Pair{Value(string("ext_linegrid")), Value(bool(true))},
         Pair{Value(string("rgb")), Value(bool(true))},
     },}
@@ -71,13 +75,7 @@ main :: proc()
         
         if app.needs_redraw
         {
-            sdl2.SetRenderDrawColor(app.renderer, 8, 8, 8, 255)
-            sdl2.RenderClear(app.renderer)
-
-            dst := sdl2.Rect{x = 20, y = 20, w = FONT_TEXTURE_SIZE, h = FONT_TEXTURE_SIZE}
-            sdl2.RenderCopy(app.renderer, fontTexture, nil, &dst)
-
-            sdl2.RenderPresent(app.renderer)
+            render(&app)
             app.needs_redraw = false
         }
     }

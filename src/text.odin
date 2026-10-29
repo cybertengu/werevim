@@ -2,10 +2,11 @@ package main
 
 import "core:os"
 import "core:strings"
+import "core:fmt"
 import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 
-FONT_SIZE :: 48
+FONT_SIZE :: 16
 FONT_TEXTURE_SIZE :: 512
 NUM_GLYPHS :: 128
 FONT_FILENAME :: "assets/fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
@@ -14,6 +15,8 @@ font : ^ttf.Font
 white : sdl2.Color = {255, 255, 255, 255}
 fontTexture : ^sdl2.Texture
 glyphs : [NUM_GLYPHS]sdl2.Rect
+advance : i32
+cell_width, cell_height : i32
 
 initFont :: proc(filename : string)
 {
@@ -87,6 +90,7 @@ initFont :: proc(filename : string)
     }
 
     fontTexture = sdl2.CreateTextureFromSurface(app.renderer, surface)
+    sdl2.SetTextureBlendMode(fontTexture, .BLEND)
     
     if fontTexture == nil
     {
@@ -95,4 +99,8 @@ initFont :: proc(filename : string)
     }
 
     sdl2.FreeSurface(surface)
+    ttf.GlyphMetrics32(font, 'M', nil, nil, nil, nil, &advance)
+    cell_width = advance
+    cell_height = ttf.FontLineSkip(font)
+    fmt.println(cell_width, cell_height)
 }

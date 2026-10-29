@@ -27,7 +27,7 @@ drain_messages :: proc(pending : ^[dynamic]u8, messages : ^[dynamic]Value) -> De
     return decode_status
 }
 
-handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
+handle_message :: proc(app : ^App, msg : Value)
 {
     array, ok := msg.(Array)
     if !ok
@@ -131,7 +131,7 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue   
                                 }
                                 
-                                grid_resize(grid, int(width), int(height))
+                                grid_resize(&app.grid, int(width), int(height))
                             case "grid_line":
                                 if len(args) < 4
                                 {
@@ -146,14 +146,11 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue
                                 }
 
-                                grid_line(grid, int(row), int(col), cells)
+                                grid_line(&app.grid, int(row), int(col), cells)
                             case "grid_clear":
-                                grid_clear(grid)
+                                grid_clear(&app.grid)
                             case "flush":
-                                grid_dump(grid)
-                                index := (grid.height - 2) * grid.width + 0
-                                id := grid.cells[index].highlight_id
-                                fg, bg := highlight_colors(&app.table, id)
+                                grid_dump(&app.grid)
                             case "grid_scroll":
                                 if len(args) < 6
                                 {
@@ -170,7 +167,7 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue
                                 }
                                 
-                                grid_scroll(grid, int(top), int(bot), int(left), int(right), int(rows))
+                                grid_scroll(&app.grid, int(top), int(bot), int(left), int(right), int(rows))
                             case "grid_cursor_goto":
                                 if len(args) < 3
                                 {
@@ -184,8 +181,8 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue
                                 }
                                 
-                                grid.cursor_row = int(row)
-                                grid.cursor_col = int(col)
+                                app.cursor.row = int(row)
+                                app.cursor.col = int(row)
                             case "default_colors_set":
                                 if len(args) < 2
                                 {
@@ -199,8 +196,8 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue
                                 }
                                 
-                                table.default_bg = u32(background)
-                                table.default_fg = u32(foreground)
+                                app.table.default_bg = u32(background)
+                                app.table.default_fg = u32(foreground)
                             case "hl_attr_define":
                                 if len(args) < 2
                                 {
@@ -214,8 +211,11 @@ handle_message :: proc(grid : ^Grid, table : ^Highlights, msg : Value)
                                     continue
                                 }
                                 
-                                hl_attr_define(table, int(id), attrs)
-                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mode_info_set", "mode_change", "mouse_on":
+                                hl_attr_define(&app.table, int(id), attrs)
+                            case "mode_info_set":
+
+                            case "mode_change":
+                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

@@ -13,7 +13,6 @@ Grid :: struct
 {
     width, height : int,
     cells : []Cell, // One flat array: index = row * width + col,
-    cursor_row, cursor_col : int,
 }
 
 grid_resize :: proc(grid : ^Grid, width, height : int)

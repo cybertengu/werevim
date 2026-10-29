@@ -182,7 +182,7 @@ handle_message :: proc(app : ^App, msg : Value)
                                 }
                                 
                                 app.cursor.row = int(row)
-                                app.cursor.col = int(row)
+                                app.cursor.col = int(col)
                             case "default_colors_set":
                                 if len(args) < 2
                                 {

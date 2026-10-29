@@ -74,7 +74,7 @@ initFont :: proc(filename : string)
             }
         }
 
-        sdl2.SetSurfaceBlendMode(surface, sdl2.BlendMode.NONE)
+        sdl2.SetSurfaceBlendMode(text, sdl2.BlendMode.NONE)
         sdl2.BlitSurface(text, nil, surface, &dest)
 
         g = &glyphs[i]

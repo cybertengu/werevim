@@ -35,7 +35,8 @@ main :: proc()
     defer cleanup()
     NVIM_EVENT = sdl2.RegisterEvents(1) // Return my own event type number.
 
-    initFont(FONT_FILENAME)
+    initFont(FONT_FILENAME, true)
+    initFont(FALLBACK_FONT_FILENAME, false)
 
     w, h : i32
     sdl2.GetRendererOutputSize(app.renderer, &w, &h)
@@ -183,6 +184,10 @@ initSDL :: proc()
 cleanup :: proc()
 {
     ttf.CloseFont(font)
+    if fallback_font != nil
+    {
+        ttf.CloseFont(fallback_font)
+    }
 
     ttf.Quit()
 

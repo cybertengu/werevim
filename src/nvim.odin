@@ -50,7 +50,7 @@ nvim_start :: proc() -> (nvim : Nvim, ok : bool)
     }
 
     outcome : os.Error
-    nvim.process, outcome = os.process_start(os.Process_Desc{command = {"nvim", "--embed"}, stdin = a_r, stdout = b_w, stderr = os.stderr})
+    nvim.process, outcome = os.process_start(os.Process_Desc{command = {"nvim", "--embed", "-c", "call setline(1, 'a漢b字c')"}, stdin = a_r, stdout = b_w, stderr = os.stderr})
     if outcome != nil
     {
         fmt.eprintfln("Something went wrong starting a process: %v", outcome)
@@ -68,7 +68,6 @@ nvim_start :: proc() -> (nvim : Nvim, ok : bool)
     os.close(a_r)
     os.close(b_w)
     ok = true
-
     return
 }
 

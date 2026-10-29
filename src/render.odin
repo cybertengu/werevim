@@ -30,12 +30,14 @@ render :: proc(app : ^App)
         {
             cell := app.grid.cells[row * app.grid.width + col]
             c := cell.character
-            if c > ' ' && c <= '~'
+            if c != 0 && c != ' '
             {
                 fg, _ := highlight_colors(&app.table, cell.highlight_id)
                 r, g, b = color_rgb(fg)
-                src := glyphs[c]
+                src := get_glyph(c)
+                span := cell_span(&app.grid, row, col)
                 dst := sdl2.Rect{i32(col) * cell_width, i32(row) * cell_height, src.w, src.h}
+                dst.x += (cell_width * span - src.w) / 2
                 sdl2.SetTextureColorMod(fontTexture, r, g, b)
                 sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst)
             }
@@ -73,7 +75,8 @@ draw_cursor :: proc(app : ^App)
     }
 
     r, g, b := color_rgb(cursor_color)
-    dst := sdl2.Rect{x, y, cell_width, cell_height}
+    span := cell_span(&app.grid, app.cursor.row, app.cursor.col)
+    dst := sdl2.Rect{x, y, cell_width * span, cell_height}
     pct := i32(info.cell_percentage)
     switch info.shape
     {
@@ -88,11 +91,11 @@ draw_cursor :: proc(app : ^App)
     sdl2.SetRenderDrawColor(app.renderer, r, g, b, 255)
     sdl2.RenderFillRect(app.renderer, &dst)
     c := cell.character
-    if c > ' ' && c <= '~' && info.shape == .Block
+    if c != 0 && c != ' ' && info.shape == .Block
     {
         r, g, b = color_rgb(text_color)
-        src := glyphs[c]
-        dst_glyph := sdl2.Rect{x, y, src.w, src.h}
+        src := get_glyph(c)
+        dst_glyph := sdl2.Rect{x, y, cell_width * span, src.h}
         sdl2.SetTextureColorMod(fontTexture, r, g, b)
         sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst_glyph)
     }

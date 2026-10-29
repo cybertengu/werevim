@@ -152,3 +152,17 @@ grid_scroll :: proc(grid : ^Grid, top, bot, left, right, rows : int)
         }
     }
 }
+
+cell_span :: proc(grid : ^Grid, row, col : int) -> i32
+{
+    if col + 1 < grid.width
+    {
+        cell := grid.cells[row * grid.width + col + 1]
+        if cell.character == 0
+        {
+            return 2
+        }
+    }
+    
+    return 1
+}

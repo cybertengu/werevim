@@ -288,3 +288,51 @@ test_grid_scroll_partial_width :: proc(t : ^testing.T)
     expect_row(t, &grid, 2, "cdd")
     expect_row(t, &grid, 3, "d")
 }
+
+@(test)
+test_grid_cell_span_normal :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+    result := cell_span(&grid, 0, 1)
+
+    testing.expect_value(t, result, 1)
+}
+
+@(test)
+test_grid_cell_span_end_of_column :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+    fill_row(&grid, 0, 'a')
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+    grid.cells[1 * grid.width + 0] = Cell{0, 0}
+    result := cell_span(&grid, 0, 2)
+
+    testing.expect_value(t, result, 1)    
+}
+
+@(test)
+test_grid_cell_span_wide_character :: proc(t : ^testing.T)
+{
+    grid : Grid
+    grid_resize(&grid, 3, 4)
+    defer delete(grid.cells)
+    fill_row(&grid, 0, 'a')
+    grid.cells[0 * grid.width + 0] = Cell{'漢', 0}
+    grid.cells[0 * grid.width + 1] = Cell{0, 0}
+    fill_row(&grid, 1, 'b')
+    fill_row(&grid, 2, 'c')
+    fill_row(&grid, 3, 'd')
+    result := cell_span(&grid, 0, 0)
+
+    testing.expect_value(t, result, 2)    
+}

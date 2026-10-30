@@ -3,7 +3,7 @@
 A GUI for Neovim, written in Odin with SDL2. Visual Studio Code's (VS Code) vim emulation doesn't support every Vim command, and I wanted an editor without constant update pages. Auto-completion is annoying to me in VS Code when typing.
 
 ## Status
-Currently in development. It only opens a window and renders text. No Neovim integration yet.
+This can be used as an editor. I got a few polishing ideas to do.
 
 ## Goals
 Fast startup, fast file open and edit, fast compile time, Windows and macOS.

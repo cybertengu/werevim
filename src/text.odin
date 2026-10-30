@@ -18,40 +18,28 @@ glyphs : map[rune]sdl2.Rect
 atlas_x, atlas_y, atlas_row_h : i32
 advance, cell_width, cell_height : i32
 
-initFont :: proc(filename : string, is_required : bool)
+initFont :: proc(filename : string)
 {
-    surface : ^sdl2.Surface
-
-    cFilename := strings.clone_to_cstring(filename)
-    defer delete(cFilename)
-    font = ttf.OpenFont(cFilename, FONT_SIZE)
-
+    font = open_font(filename)
     if font == nil
     {
-        if is_required
-        {
-            sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong to get the font file %s\n", cFilename)
-            os.exit(1)
-        }
-        else
-        {
-            return
-        }
+        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong trying to open a font file: %s", sdl2.GetError())
+        os.exit(1)
     }
 
+    fallback_font = open_font(FALLBACK_FONT_FILENAME)
+    if fallback_font == nil
+    {
+        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.WARN, "Something went wrong trying to get the backup font file: %s", sdl2.GetError())
+    }
+    
+    surface : ^sdl2.Surface
     surface = sdl2.CreateRGBSurface(0, FONT_TEXTURE_SIZE, FONT_TEXTURE_SIZE, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000)
 
     if surface == nil
     {
-        if is_required
-        {
-            sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong to create a surface.\n")
-            os.exit(1)
-        }
-        else
-        {
-            return
-        }
+        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong to create a surface.\n")
+        os.exit(1)
     }
 
     fontTexture = sdl2.CreateTextureFromSurface(app.renderer, surface)
@@ -59,15 +47,8 @@ initFont :: proc(filename : string, is_required : bool)
     
     if fontTexture == nil
     {
-        if is_required
-        {
-            sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong getting a font texture: %s\n", sdl2.GetError())
-            os.exit(1)
-        }
-        else
-        {
-            return
-        }
+        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong getting a font texture: %s\n", sdl2.GetError())
+        os.exit(1)
     }
 
     sdl2.FreeSurface(surface)
@@ -99,7 +80,6 @@ get_glyph :: proc(ch : rune) -> sdl2.Rect
     if atlas_x + text.w >= FONT_TEXTURE_SIZE
     {
         atlas_x = 0
-        atlas_y += text.h + 1
         atlas_y += atlas_row_h + 1
         atlas_row_h = 0
 
@@ -119,4 +99,12 @@ get_glyph :: proc(ch : rune) -> sdl2.Rect
     atlas_row_h = max(atlas_row_h, text.h)
     sdl2.FreeSurface(text)
     return dest
+}
+
+open_font :: proc(filename : string) -> ^ttf.Font
+{
+    cFilename := strings.clone_to_cstring(filename)
+    defer delete(cFilename)
+    f := ttf.OpenFont(cFilename, FONT_SIZE)
+    return f
 }

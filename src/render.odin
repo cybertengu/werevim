@@ -95,7 +95,8 @@ draw_cursor :: proc(app : ^App)
     {
         r, g, b = color_rgb(text_color)
         src := get_glyph(c)
-        dst_glyph := sdl2.Rect{x, y, cell_width * span, src.h}
+        dst_glyph := sdl2.Rect{x, y, src.w, src.h}
+        dst_glyph.x += (cell_width * span - src.w) / 2
         sdl2.SetTextureColorMod(fontTexture, r, g, b)
         sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst_glyph)
     }

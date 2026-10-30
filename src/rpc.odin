@@ -57,10 +57,6 @@ handle_message :: proc(app : ^App, msg : Value)
                 fmt.eprintfln("Message has too few elements: %v", len(array))
                 return
             }
-            else
-            {
-                fmt.printfln("Response to: %v", array[1])
-            }
             
             _, is_nil := array[2].(Nil)
             if !is_nil
@@ -150,7 +146,6 @@ handle_message :: proc(app : ^App, msg : Value)
                             case "grid_clear":
                                 grid_clear(&app.grid)
                             case "flush":
-                                grid_dump(&app.grid)
                                 app.needs_redraw = true
                             case "grid_scroll":
                                 if len(args) < 6

@@ -35,8 +35,7 @@ main :: proc()
     defer cleanup()
     NVIM_EVENT = sdl2.RegisterEvents(1) // Return my own event type number.
 
-    initFont(FONT_FILENAME, true)
-    initFont(FALLBACK_FONT_FILENAME, false)
+    initFont(FONT_FILENAME)
 
     w, h : i32
     sdl2.GetRendererOutputSize(app.renderer, &w, &h)
@@ -67,11 +66,11 @@ main :: proc()
     for app.is_running
     {
         sdl2.WaitEvent(&event)
-        handle_event(event, &app)
+        handle_event(&event, &app)
 
         for sdl2.PollEvent(&event)
         {
-            handle_event(event, &app)
+            handle_event(&event, &app)
         }
         
         if app.needs_redraw
@@ -82,7 +81,7 @@ main :: proc()
     }
 }
 
-handle_event :: proc(event : sdl2.Event, app : ^App)
+handle_event :: proc(event : ^sdl2.Event, app : ^App)
 {
     if u32(event.type) == NVIM_EVENT
     {
@@ -93,7 +92,6 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
             return
         }
 
-        // TODO(David): Finish this up.
         reader_take_bytes(&app.reader, &app.pending)
         
         messages : [dynamic]Value
@@ -120,10 +118,10 @@ handle_event :: proc(event : sdl2.Event, app : ^App)
             app.is_running = false
 
         case sdl2.EventType.KEYDOWN:
-            if event.key.keysym.sym == sdl2.Keycode.ESCAPE
-            {
-                app.is_running = false
-            }
+
+        case sdl2.EventType.TEXTINPUT:
+            text := string(cstring(&event.text.text[0]))
+            nvim_input(&app.nvim, text)
         case sdl2.EventType.WINDOWEVENT:
             #partial switch event.window.event
             {

@@ -19,7 +19,7 @@ main :: proc()
 {
     app = {}
     event : sdl2.Event
-    nvim, ok := nvim_start()
+    nvim, ok := nvim_start(os.args[1:])
     if !ok
     {
         fmt.eprintln("Couldn't set up Neovim.")
@@ -30,7 +30,14 @@ main :: proc()
     initSDL()
     NVIM_EVENT = sdl2.RegisterEvents(1) // Return my own event type number.
 
-    initFont(FONT_FILENAME)
+    executable_directory, find_dir_error := os.get_executable_directory(context.temp_allocator)
+    if find_dir_error != nil
+    {
+        fmt.eprintln(find_dir_error)
+        os.exit(1)
+    }
+    font_full_path, full_dir_error := os.join_path([]string{executable_directory, FONT_FILENAME}, context.temp_allocator)
+    initFont(font_full_path)
 
     cols, rows := window_grid_size()
     app.ui_cols = cols

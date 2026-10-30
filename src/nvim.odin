@@ -22,7 +22,7 @@ encode_request :: proc(buf : ^[dynamic]u8, msgid : int, method : string, args : 
     encode_value(buf, Value(args))
 }
 
-nvim_start :: proc() -> (nvim : Nvim, ok : bool)
+nvim_start :: proc(files : []string) -> (nvim : Nvim, ok : bool)
 {
     nvim.next_id = 1
     a_r, a_w, a_error := os.pipe()
@@ -50,7 +50,11 @@ nvim_start :: proc() -> (nvim : Nvim, ok : bool)
     }
 
     outcome : os.Error
-    nvim.process, outcome = os.process_start(os.Process_Desc{command = {"nvim", "--embed"}, stdin = a_r, stdout = b_w, stderr = os.stderr})
+    command : [dynamic]string
+    defer delete(command)
+    append(&command, "nvim", "--embed")
+    append(&command, ..files)
+    nvim.process, outcome = os.process_start(os.Process_Desc{command = command[:], stdin = a_r, stdout = b_w, stderr = os.stderr})
     if outcome != nil
     {
         fmt.eprintfln("Something went wrong starting a process: %v", outcome)

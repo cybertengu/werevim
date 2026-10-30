@@ -18,10 +18,6 @@ NVIM_EVENT : u32
 main :: proc()
 {
     app = {}
-    defer delete(app.grid.cells)
-    defer reader_stop(&app.reader)
-    defer delete(app.table.attrs)
-    defer delete(app.cursor.modes)
     event : sdl2.Event
     nvim, ok := nvim_start()
     if !ok
@@ -30,10 +26,8 @@ main :: proc()
         os.exit(1)
     }
     app.nvim = nvim
-    defer nvim_stop(&app.nvim)
 
     initSDL()
-    defer cleanup()
     NVIM_EVENT = sdl2.RegisterEvents(1) // Return my own event type number.
 
     initFont(FONT_FILENAME)
@@ -55,7 +49,6 @@ main :: proc()
     nvim_ui_try_resize(&app.nvim, app.ui_cols, app.ui_rows)
     reader_start(&app.reader, &app.nvim, NVIM_EVENT)
     app.is_running = true
-    defer delete(app.pending)
     if app.reader.thread == nil
     {
         fmt.eprintln("Couldn't start the thread.")
@@ -63,6 +56,7 @@ main :: proc()
     }
     
     app.needs_redraw = true
+    defer shutdown()
 
     for app.is_running
     {
@@ -116,7 +110,10 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
     #partial switch event.type
     {
         case sdl2.EventType.QUIT:
-            app.is_running = false
+            if !nvim_command(&app.nvim, "confirm qa")
+            {
+                app.is_running = false
+            }
 
         case sdl2.EventType.KEYDOWN:
             mod := event.key.keysym.mod
@@ -166,6 +163,7 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
                 case .EXPOSED, .SHOWN, .RESTORED:
                     app.needs_redraw = true
                 // TODO(David): Resize is laggy on Wayland (events only arrive after the drap; smooth on X11).
+                // If changes are made, update run_and_build.sh file.
                 // Ideas: sdl2.AddEventWatch to render from inside SDL's event callback; check newer SDL3/sdl2-compat
                 // versions; native SDL3 port.
                 case .SIZE_CHANGED:
@@ -245,6 +243,18 @@ cleanup :: proc()
     sdl2.DestroyWindow(app.window)
 
     sdl2.Quit()
+}
+
+shutdown :: proc()
+{
+    nvim_quit(&app.nvim)
+    reader_stop(&app.reader)
+    nvim_close(&app.nvim)
+    delete(app.cursor.modes)
+    delete(app.grid.cells)
+    delete(app.table.attrs)
+    delete(app.pending)
+    cleanup()
 }
 
 window_grid_size :: proc() -> (cols, rows : int)

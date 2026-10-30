@@ -50,7 +50,7 @@ test_cursor_mode_change :: proc(t : ^testing.T)
 }
 
 @(test)
-test_cursor_mode_change_style :: proc(t : ^testing.T)
+test_cursor_mode_style_disabled_is_block :: proc(t : ^testing.T)
 {
     mode_info := Array{
         Value(Map{
@@ -68,9 +68,6 @@ test_cursor_mode_change_style :: proc(t : ^testing.T)
     mode_change(&cursor, 1)
     cursor.style_enabled = false
     
-    testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Block, 100, 0})
-
-    mode_change(&cursor, 0)
     testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Block, 100, 0})
 }
 

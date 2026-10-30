@@ -41,8 +41,34 @@ test_cursor_mode_change :: proc(t : ^testing.T)
     defer delete(cursor.modes)
     mode_info_set(&cursor, mode_info)
     mode_change(&cursor, 1)
+    cursor.style_enabled = true
     
     testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Vertical, 25, 0})
+
+    mode_change(&cursor, 0)
+    testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Block, 100, 0})
+}
+
+@(test)
+test_cursor_mode_change_style :: proc(t : ^testing.T)
+{
+    mode_info := Array{
+        Value(Map{
+            Pair{Value(string("cursor_shape")), Value(string("block"))},
+            Pair{Value(string("cell_percentage")), Value(i64(100))},
+        }),
+        Value(Map{
+            Pair{Value(string("cursor_shape")), Value(string("vertical"))},
+            Pair{Value(string("cell_percentage")), Value(i64(25))},
+        })
+    }
+    cursor : Cursor
+    defer delete(cursor.modes)
+    mode_info_set(&cursor, mode_info)
+    mode_change(&cursor, 1)
+    cursor.style_enabled = false
+    
+    testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Block, 100, 0})
 
     mode_change(&cursor, 0)
     testing.expect_value(t, current_mode_info(&cursor), Mode_Info{.Block, 100, 0})

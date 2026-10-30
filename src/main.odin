@@ -4,6 +4,7 @@ import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 import "core:os"
 import "core:fmt"
+import "core:strings"
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -118,10 +119,17 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             app.is_running = false
 
         case sdl2.EventType.KEYDOWN:
-
+            name, ok := key_name(event.key.keysym.sym)   
+            if ok
+            {
+                value := fmt.tprintf("<%s>", name)
+                nvim_input(&app.nvim, value)
+            }
         case sdl2.EventType.TEXTINPUT:
             text := string(cstring(&event.text.text[0]))
-            nvim_input(&app.nvim, text)
+            fixed_keys, allocated := strings.replace_all(text, "<", "<lt>")
+            defer if allocated do delete(fixed_keys)
+            nvim_input(&app.nvim, fixed_keys)
         case sdl2.EventType.WINDOWEVENT:
             #partial switch event.window.event
             {

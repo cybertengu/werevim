@@ -3,7 +3,6 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:time"
-import "core:strings"
 
 Nvim :: struct
 {
@@ -170,9 +169,7 @@ nvim_request :: proc(nvim : ^Nvim, method : string, args : Array) -> (msgid : in
 
 nvim_input :: proc(nvim : ^Nvim, text : string) -> bool
 {
-    fixed_keys, allocated := strings.replace_all(text, "<", "<lt>")
-    defer if allocated do delete(fixed_keys)
-    args := Array{Value(fixed_keys)}
+    args := Array{Value(text)}
     _, ok := nvim_request(nvim, "nvim_input", args)
     return ok
 }

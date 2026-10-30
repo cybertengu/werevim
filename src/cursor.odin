@@ -19,16 +19,11 @@ Cursor :: struct
     row, col : int,
     modes : [dynamic]Mode_Info,
     current_mode : int,
+    style_enabled : bool,
 }
 
 mode_info_set :: proc(cursor : ^Cursor, mode_info : Array)
 {
-    /*
-        clear(&modes)
-        for each entity in mode_info
-            Map -> read the three keys (with defaults: Block, 100, 0)
-            append to modes
-    */
     clear(&cursor.modes)
     for entry in mode_info
     {
@@ -96,6 +91,11 @@ mode_change :: proc(cursor : ^Cursor, idx : int)
 
 current_mode_info :: proc(cursor : ^Cursor) -> Mode_Info
 {
+    if !cursor.style_enabled
+    {
+        return Mode_Info{.Block, 100, 0}
+    }
+
     if cursor.current_mode < len(cursor.modes) && cursor.current_mode >= 0
     {
         return cursor.modes[cursor.current_mode]

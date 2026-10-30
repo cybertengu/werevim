@@ -209,9 +209,34 @@ handle_message :: proc(app : ^App, msg : Value)
                                 
                                 hl_attr_define(&app.table, int(id), attrs)
                             case "mode_info_set":
-
+                                if len(args) < 2
+                                {
+                                    continue
+                                }
+                                
+                                style_enable, is_style_enabled  := args[0].(bool)
+                                list, is_list := args[1].(Array)
+                                if !is_style_enabled || !is_list
+                                {
+                                    continue
+                                }
+                                
+                                app.cursor.style_enabled = style_enable
+                                mode_info_set(&app.cursor, list)
                             case "mode_change":
-                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on":
+                                if len(args) < 2
+                                {
+                                    continue
+                                }
+                                
+                                index, is_index := args[1].(i64)
+                                if !is_index
+                                {
+                                    continue
+                                }
+
+                                mode_change(&app.cursor, int(index))
+                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

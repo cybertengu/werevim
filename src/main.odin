@@ -38,10 +38,9 @@ main :: proc()
 
     initFont(FONT_FILENAME)
 
-    w, h : i32
-    sdl2.GetRendererOutputSize(app.renderer, &w, &h)
-    cols := w / cell_width
-    rows := h / cell_height
+    cols, rows := window_grid_size()
+    app.ui_cols = cols
+    app.ui_rows = rows
     args := Array{Value(i64(cols)), Value(i64(rows)), Map{
         Pair{Value(string("ext_linegrid")), Value(bool(true))},
         Pair{Value(string("rgb")), Value(bool(true))},
@@ -53,6 +52,7 @@ main :: proc()
         os.exit(1)
     }
 
+    nvim_ui_try_resize(&app.nvim, app.ui_cols, app.ui_rows)
     reader_start(&app.reader, &app.nvim, NVIM_EVENT)
     app.is_running = true
     defer delete(app.pending)
@@ -163,8 +163,20 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
         case sdl2.EventType.WINDOWEVENT:
             #partial switch event.window.event
             {
-                case .EXPOSED, .SIZE_CHANGED, .SHOWN, .RESTORED:
+                case .EXPOSED, .SHOWN, .RESTORED:
                     app.needs_redraw = true
+                // TODO(David): Resize is laggy on Wayland (events only arrive after the drap; smooth on X11).
+                // Ideas: sdl2.AddEventWatch to render from inside SDL's event callback; check newer SDL3/sdl2-compat
+                // versions; native SDL3 port.
+                case .SIZE_CHANGED:
+                    app.needs_redraw = true
+                    cols, rows := window_grid_size()
+                    if cols != app.ui_cols || rows != app.ui_rows
+                    {
+                        nvim_ui_try_resize(&app.nvim, cols, rows)
+                        app.ui_cols = cols
+                        app.ui_rows = rows
+                    }
             }
     }
 }
@@ -181,11 +193,12 @@ App :: struct
     grid : Grid,
     table : Highlights,
     cursor : Cursor,
+    ui_cols, ui_rows : int,
 }
 
 initSDL :: proc()
 {
-    rendererFlag : sdl2.RendererFlags = {sdl2.RendererFlag.ACCELERATED, sdl2.RendererFlag.PRESENTVSYNC}
+    rendererFlag : sdl2.RendererFlags = {sdl2.RendererFlag.ACCELERATED}
     windowFlags : sdl2.WindowFlags = {sdl2.WindowFlag.RESIZABLE, sdl2.WindowFlag.ALLOW_HIGHDPI}
 
     if sdl2.Init(sdl2.INIT_VIDEO) < 0
@@ -232,4 +245,13 @@ cleanup :: proc()
     sdl2.DestroyWindow(app.window)
 
     sdl2.Quit()
+}
+
+window_grid_size :: proc() -> (cols, rows : int)
+{
+    w, h : i32
+    sdl2.GetRendererOutputSize(app.renderer, &w, &h)    
+    cols = max(int(w) / int(cell_width), 1)
+    rows = max(int(h) / int(cell_height), 1)
+    return
 }

@@ -173,3 +173,10 @@ nvim_input :: proc(nvim : ^Nvim, text : string) -> bool
     _, ok := nvim_request(nvim, "nvim_input", args)
     return ok
 }
+
+nvim_ui_try_resize :: proc(nvim : ^Nvim, cols, rows : int) -> bool
+{
+    args := Array{Value(i64(cols)), Value(i64(rows))}
+    _, result := nvim_request(&app.nvim, "nvim_ui_try_resize", args)
+    return result
+}

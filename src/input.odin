@@ -1,6 +1,7 @@
 package main
 
 import "vendor:sdl2"
+import "core:fmt"
 
 key_name :: proc(sym : sdl2.Keycode) -> (name : string, ok : bool)
 {
@@ -93,4 +94,25 @@ key_name :: proc(sym : sdl2.Keycode) -> (name : string, ok : bool)
     }
 
     return
+}
+
+modifier_prefix :: proc(mod : sdl2.Keymod, with_shift : bool) -> string
+{
+    result := ""
+    if .LCTRL in mod || .RCTRL in mod
+    {
+        result = "C-"
+    }
+    
+    if .LALT in mod
+    {
+        result = fmt.tprintf("%sM-", result)
+    }
+
+    if with_shift && (.LSHIFT in mod || .RSHIFT in mod)
+    {
+        result = fmt.tprintf("%sS-", result)
+    }
+
+    return result
 }

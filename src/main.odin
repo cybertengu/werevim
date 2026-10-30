@@ -119,13 +119,43 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             app.is_running = false
 
         case sdl2.EventType.KEYDOWN:
-            name, ok := key_name(event.key.keysym.sym)   
+            mod := event.key.keysym.mod
+            sym := event.key.keysym.sym
+            ch := rune(sym)
+            name, ok := key_name(sym)   
             if ok
             {
-                value := fmt.tprintf("<%s>", name)
+                prefix := modifier_prefix(mod, true)
+                value := fmt.tprintf("<%s%s>", prefix, name)
+                nvim_input(&app.nvim, value)
+            }
+            else if (.LCTRL in mod || .RCTRL in mod || .LALT in mod) && ch >= ' ' && ch <= '~'
+            {
+                char_name : string
+                if ch == '<'
+                {
+                    char_name = "lt"
+                }
+                else if ch == ' '
+                {
+                    char_name = "Space"
+                }
+                else
+                {
+                    char_name = fmt.tprintf("%c", ch)
+                }
+
+                prefix := modifier_prefix(mod, false)
+                value := fmt.tprintf("<%s%s>", prefix, char_name)
                 nvim_input(&app.nvim, value)
             }
         case sdl2.EventType.TEXTINPUT:
+            mod := sdl2.GetModState()
+            if .LCTRL in mod || .RCTRL in mod || .LALT in mod
+            {
+                break
+            }
+
             text := string(cstring(&event.text.text[0]))
             fixed_keys, allocated := strings.replace_all(text, "<", "<lt>")
             defer if allocated do delete(fixed_keys)

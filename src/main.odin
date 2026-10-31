@@ -33,10 +33,16 @@ main :: proc()
     executable_directory, find_dir_error := os.get_executable_directory(context.temp_allocator)
     if find_dir_error != nil
     {
-        fmt.eprintln(find_dir_error)
+        fmt.eprintfln("Couldn't find the executable directory: %v", find_dir_error)
         os.exit(1)
     }
     font_full_path, full_dir_error := os.join_path([]string{executable_directory, FONT_FILENAME}, context.temp_allocator)
+    if full_dir_error != nil
+    {
+        fmt.eprintfln("Couldn't create the full path to the font file: %s", full_dir_error)
+        os.exit(1)
+    }
+
     initFont(font_full_path)
 
     cols, rows := window_grid_size()

@@ -6,5 +6,7 @@
 *.ilk
 vendor/nvim/
 werevim
+werevim-release
 ols.json
+src.bin
 

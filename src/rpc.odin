@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:strings"
 
 // Decodes every complete message at the front of pending into messages,
 // then removes those bytes. A partial message stays in pending.
@@ -236,7 +237,30 @@ handle_message :: proc(app : ^App, msg : Value)
                                 }
 
                                 mode_change(&app.cursor, int(index))
-                            case "option_set", "set_icon", "set_title", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
+                            case "set_title":
+                                if len(args) < 1
+                                {
+                                    continue
+                                }
+
+                                title, is_title := args[0].(string)
+                                if !is_title
+                                {
+                                    continue
+                                }
+
+                                c_title : cstring
+                                if title == ""
+                                {
+                                    c_title = "Werevim"
+                                }
+                                else
+                                {
+                                    c_title = strings.clone_to_cstring(title, context.temp_allocator)
+                                }
+
+                                set_window_title(app.window, c_title)
+                            case "option_set", "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

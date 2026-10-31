@@ -49,8 +49,14 @@ main :: proc()
     _, result := nvim_request(&app.nvim, "nvim_ui_attach", args)
     if !result
     {
-        fmt.eprintln("Couldn't send a request to Neovim")
+        fmt.eprintln("Couldn't send a request to Neovim.")
         os.exit(1)
+    }
+
+    is_set_title := nvim_command(&app.nvim, "set title")
+    if !is_set_title
+    {
+        fmt.eprintln("Couldn't set up the title.")
     }
 
     nvim_ui_try_resize(&app.nvim, app.ui_cols, app.ui_rows)
@@ -271,4 +277,9 @@ window_grid_size :: proc() -> (cols, rows : int)
     cols = max(int(w) / int(cell_width), 1)
     rows = max(int(h) / int(cell_height), 1)
     return
+}
+
+set_window_title :: proc(window : ^sdl2.Window, title : cstring)
+{
+    sdl2.SetWindowTitle(window, title)
 }

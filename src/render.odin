@@ -34,12 +34,15 @@ render :: proc(app : ^App)
             {
                 fg, _ := highlight_colors(&app.table, cell.highlight_id)
                 r, g, b = color_rgb(fg)
-                src := get_glyph(c)
-                span := cell_span(&app.grid, row, col)
-                dst := sdl2.Rect{i32(col) * cell_width, i32(row) * cell_height, src.w, src.h}
-                dst.x += (cell_width * span - src.w) / 2
-                sdl2.SetTextureColorMod(fontTexture, r, g, b)
-                sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst)
+                src, ok := get_glyph(c)
+                if ok
+                {
+                    span := cell_span(&app.grid, row, col)
+                    dst := sdl2.Rect{i32(col) * cell_width, i32(row) * cell_height, src.w, src.h}
+                    dst.x += (cell_width * span - src.w) / 2
+                    sdl2.SetTextureColorMod(fontTexture, r, g, b)
+                    sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst)
+                }
             }
         }
     }
@@ -94,10 +97,13 @@ draw_cursor :: proc(app : ^App)
     if c != 0 && c != ' ' && info.shape == .Block
     {
         r, g, b = color_rgb(text_color)
-        src := get_glyph(c)
-        dst_glyph := sdl2.Rect{x, y, src.w, src.h}
-        dst_glyph.x += (cell_width * span - src.w) / 2
-        sdl2.SetTextureColorMod(fontTexture, r, g, b)
-        sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst_glyph)
+        src, ok := get_glyph(c)
+        if ok
+        {
+            dst_glyph := sdl2.Rect{x, y, src.w, src.h}
+            dst_glyph.x += (cell_width * span - src.w) / 2
+            sdl2.SetTextureColorMod(fontTexture, r, g, b)
+            sdl2.RenderCopy(app.renderer, fontTexture, &src, &dst_glyph)
+        }
     }
 }

@@ -2,6 +2,7 @@ package main
 
 import "core:os"
 import "core:strings"
+import "core:fmt"
 import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 
@@ -57,11 +58,11 @@ initFont :: proc(filename : string)
     cell_height = ttf.FontLineSkip(font)
 }
 
-get_glyph :: proc(ch : rune) -> sdl2.Rect
+get_glyph :: proc(ch : rune) -> (rect : sdl2.Rect, ok :  bool)
 {
-    if rect, ok := glyphs[ch]; ok
+    if cache, found := glyphs[ch]; found
     {
-        return rect
+        return cache, cache.w > 0
     }
     
     use := font
@@ -73,8 +74,9 @@ get_glyph :: proc(ch : rune) -> sdl2.Rect
     text := ttf.RenderGlyph32_Blended(use, ch, white) 
     if text == nil
     {
-        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong to create a text surface: %s\n", sdl2.GetError())
-        os.exit(1)
+        glyphs[ch] = {}
+        fmt.eprintfln("Can't render U+%04X: %s", ch, ttf.GetError())
+        return {}, false
     }
     
     if atlas_x + text.w >= FONT_TEXTURE_SIZE
@@ -98,7 +100,7 @@ get_glyph :: proc(ch : rune) -> sdl2.Rect
     atlas_x += text.w
     atlas_row_h = max(atlas_row_h, text.h)
     sdl2.FreeSurface(text)
-    return dest
+    return dest, true
 }
 
 open_font :: proc(filename : string) -> ^ttf.Font

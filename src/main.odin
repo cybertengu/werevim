@@ -6,6 +6,8 @@ import "core:os"
 import "core:fmt"
 import "core:strings"
 
+// TODO(David): Release build and desktop file. force quit on second x click. Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland.
+
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
 

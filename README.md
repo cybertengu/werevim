@@ -70,6 +70,15 @@ type check                         -   105.253 ms -  29.57%
 LLVM API Code Gen (   72 modules ) -   109.665 ms -  30.81%
 msvc-link                          -   104.137 ms -  29.25%
 ```
+2026/10/30
+```
+Total Time                         -   453.628 ms - 100.00%
+initialization                     -    14.581 ms -   3.21%
+parse files                        -    54.737 ms -  12.06%
+type check                         -    66.230 ms -  14.60%
+LLVM API Code Gen (   98 modules ) -   205.280 ms -  45.25%
+ld-link                            -   112.785 ms -  24.86%
+```
 
 ## License
 Werevim is released under the MIT License. See [LICENSE](LICENSE).

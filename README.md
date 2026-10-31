@@ -3,7 +3,7 @@
 A GUI for Neovim, written in Odin with SDL2. Visual Studio Code's (VS Code) vim emulation doesn't support every Vim command, and I wanted an editor without constant update pages. Auto-completion is annoying to me in VS Code when typing.
 
 ## Status
-This can be used as an editor. No mouse support. Laggy live resize on Wayland. The CJK fallback font exists on Fedora. I got a few polishing ideas to do.
+This can be used as an editor. No mouse support. Laggy live resize on Wayland. The Chinese/Japanes text need the Noto CJK font (Fedora path only). I got a few polishing ideas to do.
 
 ## Goals
 Fast startup, fast file open and edit, fast compile time, Windows and macOS.
@@ -17,14 +17,16 @@ sudo dnf install llvm-devel clang sdl2-compat-devel SDL2_ttf-devel neovim
 Build Odin from source and add it to your PATH. Tested with Odin dev-2026-10:
 ```
 git clone https://github.com/odin-lang/Odin ~/Odin
-cd ~/Odin && ./build_odin.sh release
+cd ~/Odin && git checkout dev-2026-10 && ./build_odin.sh release
 echo 'export PATH="$HOME/Odin:$PATH"' >> ~/.bashrc
 ```
 
 Then build and run Werevim from the repo folder:
 ```
 ./build.sh
+./test.sh
 ./werevim
+./werevim filetxt
 ```
 
 ## Building on Windows
@@ -41,7 +43,7 @@ NOTE: I have not tested on Windows. I don't have one anymore.
 ## Baseline Build Time (I think I won't update this anymore)
 Tested on Windows (debug build, but I don't have a Windows computer anymore), macOS planned. Used flags such as -debug and -show-timings. Tested on Fedora.
 
-Measured on 12th Gen Intel(R) Core(TM) i9-12900H, 14 Cores, 20 Logical Processors, Windows 11.
+### Measured on 12th Gen Intel(R) Core(TM) i9-12900H, 14 Cores, 20 Logical Processors, Windows 11.
 
 Baseline time 2026/10/17:
 ```
@@ -71,7 +73,7 @@ LLVM API Code Gen (   72 modules ) -   109.665 ms -  30.81%
 msvc-link                          -   104.137 ms -  29.25%
 ```
 
-Measured with Intel(R) Core(TM) i7-1065G7 @ 1.30GHz, 4 Cores, 8 Logical Processors, 16 GB RAM.
+### Measured with Intel(R) Core(TM) i7-1065G7 @ 1.30GHz, 4 Cores, 8 Logical Processors, 16 GB RAM.
 Fedora Linux 44 (Workstation), kernel 7.2.13, GNOME on Wayland.
 Odin dev-2026-10:f9f544ec4, Neovim 0.12.6, SDL2_ttf 2.24.0, sdl2-compat 2.32.74 (SDL3 3.4.18).
 2026/10/30:

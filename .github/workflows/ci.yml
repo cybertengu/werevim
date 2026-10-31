@@ -3,7 +3,7 @@ name: CI
 on: [push, pull_request] # It happens on every push and pull request.
 
 jobs:
-  test:
+  build_and_test:
     runs-on: ubuntu-latest # A fresh Ubuntu machine for every time.
     steps:
       - uses: actions/checkout@v4 # 1. Get my code.

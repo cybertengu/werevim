@@ -1,0 +1,16 @@
+name: CI
+
+on: [push, pull_request] # It happens on every push and pull request.
+
+jobs:
+  test:
+    runs-on: ubuntu-latest # A fresh Ubuntu machine for every time.
+    steps:
+      - uses: actions/checkout@4 # 1. Get my code.
+      - run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          release: dev-2026-10
+      - run: ./test.sh
+      - run: ./build.sh

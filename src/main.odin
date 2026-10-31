@@ -6,7 +6,7 @@ import "core:os"
 import "core:fmt"
 import "core:strings"
 
-// TODO(David): Release build and desktop file. force quit on second x click. Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland.
+// TODO(David): force quit on second x click. Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland. See if after build, where does it show up and add a link inside the README (if link is able to always be working).
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768

@@ -65,6 +65,9 @@ handle_message :: proc(app : ^App, msg : Value)
                 fmt.eprintfln("This is an error, saw: %v", array[2])   
                 return
             }
+
+            app.quit_msgid = 0
+            app.quit_requested_at = 0
         case 2:
             method, is_string := array[1].(string)
             if !is_string

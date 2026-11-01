@@ -6,7 +6,7 @@ import "core:os"
 import "core:fmt"
 import "core:strings"
 
-// TODO(David): force quit on second x click. Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland. Look into making a release version and storing it in github.
+// TODO(David): Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland. Look into making a release version and storing it in github.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -61,7 +61,7 @@ main :: proc()
         os.exit(1)
     }
 
-    is_set_title := nvim_command(&app.nvim, "set title")
+    is_set_title, _ := nvim_command(&app.nvim, "set title")
     if !is_set_title
     {
         fmt.eprintln("Couldn't set up the title.")
@@ -125,15 +125,33 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
         {
             fmt.eprintfln("Byte stream is broken.")
         }
+
+        app.last_nvim_message_at = sdl2.GetTicks()
         return
     }
 
     #partial switch event.type
     {
         case sdl2.EventType.QUIT:
-            if !nvim_command(&app.nvim, "confirm qa")
+            nvim_silent := app.last_nvim_message_at < app.quit_requested_at
+            waited_long := sdl2.GetTicks() - app.quit_requested_at >= 2000
+
+            if app.quit_msgid != 0
             {
-                app.is_running = false
+                if nvim_silent && waited_long
+                {
+                    app.is_running = false
+                }
+            }
+            else
+            {
+                is_confirm_qa, msgid := nvim_command(&app.nvim, "confirm qa")
+                app.quit_msgid = msgid
+                if !is_confirm_qa
+                {
+                    app.is_running = false
+                }
+                app.quit_requested_at = sdl2.GetTicks()
             }
 
         case sdl2.EventType.KEYDOWN:
@@ -213,6 +231,9 @@ App :: struct
     table : Highlights,
     cursor : Cursor,
     ui_cols, ui_rows : int,
+    quit_requested_at, last_nvim_message_at : u32,
+    quit_msgid : int,
+    force_quit : bool,
 }
 
 initSDL :: proc()
@@ -268,7 +289,8 @@ cleanup :: proc()
 
 shutdown :: proc()
 {
-    nvim_quit(&app.nvim)
+    sdl2.HideWindow(app.window)
+    nvim_quit(&app.nvim, app.force_quit)
     reader_stop(&app.reader)
     nvim_close(&app.nvim)
     delete(app.cursor.modes)

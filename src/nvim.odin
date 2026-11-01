@@ -4,6 +4,8 @@ import "core:fmt"
 import "core:os"
 import "core:time"
 
+NVIM_QUIT_TIMEOUT :: time.Second * 2
+
 Nvim :: struct
 {
     process : os.Process,
@@ -126,50 +128,61 @@ nvim_request :: proc(nvim : ^Nvim, method : string, args : Array) -> (msgid : in
     return
 }
 
-nvim_quit :: proc(nvim : ^Nvim)
+nvim_kill :: proc(nvim : ^Nvim)
 {
-    if !nvim.exited
+    err1 := os.process_kill(nvim.process)
+    if err1 != nil
     {
-        sent := nvim_command(nvim, "qa!")
-        if !sent
-        {
-            nvim.exited = true
-        }
+        fmt.eprintfln("Cannot kill the neovim process: %v", err1)
     }
-    if !nvim.exited
-    {
-        timeout := time.Second * 2
-        state, err := os.process_wait(nvim.process, timeout)
-        if err != nil
-        {
-            fmt.eprintfln("Something went wrong asking Neovim to quit: %v", err)
-        }
 
-        if err == .Timeout
-        {
-            fmt.eprintfln("Neovim failed to quit: %v", err)
-            err1 := os.process_kill(nvim.process)
-            if err1 != nil
-            {
-                fmt.eprintfln("Cannot kill the neovim process: %v", err1)
-            }
-            
-            _, err2 := os.process_wait(nvim.process, timeout)
-            if err2 != nil
-            {
-                fmt.eprintfln("Couldn't kill the neovim process in time: %v", err2)
-            }
-        }
-        
-        if state.exit_code != 0
-        {
-            fmt.eprintfln("Neovim exited, but saw an error: %v", state.exit_code)
-        }    
+    _, err2 := os.process_wait(nvim.process, NVIM_QUIT_TIMEOUT)
+    if err2 != nil
+    {
+        fmt.eprintfln("Couldn't kill the neovim process in time: %v", err2)
+    }
+}
+
+nvim_quit :: proc(nvim : ^Nvim, force_quit : bool)
+{
+    if force_quit
+    {
+        nvim_kill(nvim)
     }
     else
     {
-        // Already gone. Wait so the OS can clean it up.
-        _, _ = os.process_wait(nvim.process, time.Second * 2)
+        if !nvim.exited
+        {
+            sent, _ := nvim_command(nvim, "qa!")
+            if !sent
+            {
+                nvim.exited = true
+            }
+        }
+        if !nvim.exited
+        {
+            state, err := os.process_wait(nvim.process, NVIM_QUIT_TIMEOUT)
+            if err != nil
+            {
+                fmt.eprintfln("Something went wrong asking Neovim to quit: %v", err)
+            }
+
+            if err == .Timeout
+            {
+                fmt.eprintfln("Neovim failed to quit: %v", err)
+                nvim_kill(nvim)
+            }
+            
+            if state.exit_code != 0
+            {
+                fmt.eprintfln("Neovim exited, but saw an error: %v", state.exit_code)
+            }    
+        }
+        else
+        {
+            // Already gone. Wait so the OS can clean it up.
+            _, _ = os.process_wait(nvim.process, time.Second * 2)
+        }
     }
 }
 
@@ -187,8 +200,8 @@ nvim_ui_try_resize :: proc(nvim : ^Nvim, cols, rows : int) -> bool
     return result
 }
 
-nvim_command :: proc(nvim : ^Nvim, command : string) -> bool
+nvim_command :: proc(nvim : ^Nvim, command : string) -> (bool, int) 
 {
-    _, ok := nvim_request(nvim, "nvim_command", Array{Value(string(command))})
-    return ok
+    msgid, ok := nvim_request(nvim, "nvim_command", Array{Value(string(command))})
+    return ok, msgid
 }

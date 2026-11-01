@@ -160,11 +160,13 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             nvim_silent := app.last_nvim_message_at < app.quit_requested_at
             waited_long := sdl2.GetTicks() - app.quit_requested_at >= 2000
 
+            fmt.eprintfln("QUIT at %d, silent=%v, msgid=%d", sdl2.GetTicks(), nvim_silent, app.quit_msgid)
             if app.quit_msgid != 0
             {
                 if nvim_silent && waited_long
                 {
                     app.is_running = false
+                    app.force_quit = true
                 }
                 else if nvim_silent
                 {

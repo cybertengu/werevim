@@ -5,6 +5,7 @@ import "vendor:sdl2/ttf"
 import "core:os"
 import "core:fmt"
 import "core:strings"
+import "core:mem"
 
 // TODO(David): Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland. Look into making a release version and storing it in github.
 
@@ -19,6 +20,23 @@ NVIM_EVENT : u32
 
 main :: proc()
 {
+    when ODIN_DEBUG
+    {
+        track : mem.Tracking_Allocator
+        mem.tracking_allocator_init(&track, context.allocator)
+        context.allocator = mem.tracking_allocator(&track)
+
+        defer
+        {
+            for _, entry in track.allocation_map
+            {
+                fmt.eprintfln("%v leaked %v bytes", entry.location, entry.size)
+            }
+            
+            mem.tracking_allocator_destroy(&track)
+        }
+    }
+
     app = {}
     event : sdl2.Event
     nvim, ok := nvim_start(os.args[1:])
@@ -127,6 +145,12 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
         }
 
         app.last_nvim_message_at = sdl2.GetTicks()
+        if app.showing_not_responding
+        {
+            set_window_title(app.window, app.nvim_title)
+            app.showing_not_responding = false
+        }
+
         return
     }
 
@@ -141,6 +165,11 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
                 if nvim_silent && waited_long
                 {
                     app.is_running = false
+                }
+                else if nvim_silent
+                {
+                    set_window_title(app.window, "Werevim (not responding, click X again to force quit)")
+                    app.showing_not_responding = true
                 }
             }
             else
@@ -234,6 +263,8 @@ App :: struct
     quit_requested_at, last_nvim_message_at : u32,
     quit_msgid : int,
     force_quit : bool,
+    nvim_title : string,
+    showing_not_responding : bool,
 }
 
 initSDL :: proc()
@@ -297,6 +328,8 @@ shutdown :: proc()
     delete(app.grid.cells)
     delete(app.table.attrs)
     delete(app.pending)
+    delete(app.nvim_title)
+    delete(glyphs)
     cleanup()
 }
 
@@ -309,7 +342,8 @@ window_grid_size :: proc() -> (cols, rows : int)
     return
 }
 
-set_window_title :: proc(window : ^sdl2.Window, title : cstring)
+set_window_title :: proc(window : ^sdl2.Window, title : string)
 {
-    sdl2.SetWindowTitle(window, title)
+    c_title := strings.clone_to_cstring(title, context.temp_allocator)
+    sdl2.SetWindowTitle(window, c_title)
 }

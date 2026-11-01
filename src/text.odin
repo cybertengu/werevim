@@ -9,7 +9,7 @@ import "vendor:sdl2/ttf"
 FONT_SIZE :: 16
 FONT_TEXTURE_SIZE :: 1024
 FONT_FILENAME :: "assets/fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
-FALLBACK_FONT_FILENAME :: "/usr/share/fonts/google-noto-sans-mono-cjk-vf-fonts/NotoSansMonoCJK-VF.ttc"
+DEAFAULT_FALLBACK_FONT_FILENAME :: "/usr/share/fonts/google-noto-sans-mono-cjk-vf-fonts/NotoSansMonoCJK-VF.ttc"
 
 font : ^ttf.Font
 fallback_font : ^ttf.Font
@@ -28,12 +28,24 @@ initFont :: proc(filename : string)
         os.exit(1)
     }
 
-    fallback_font = open_font(FALLBACK_FONT_FILENAME)
-    if fallback_font == nil
+    backup_font, ok := find_fallback_font()
+    if ok
     {
-        sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.WARN, "Something went wrong trying to get the backup font file: %s", sdl2.GetError())
+        fallback_font = open_font(backup_font)
+        if fallback_font == nil
+        {
+            sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong trying to open a backup font file: %s", sdl2.GetError())
+        }
     }
-    
+    else
+    {
+        fallback_font = open_font(DEAFAULT_FALLBACK_FONT_FILENAME)
+        if fallback_font == nil
+        {
+            sdl2.LogMessage(i32(sdl2.LogCategory.APPLICATION), sdl2.LogPriority.CRITICAL, "Something went wrong trying to open a backup font file: %s", sdl2.GetError())
+        }
+    }
+
     surface : ^sdl2.Surface
     surface = sdl2.CreateRGBSurface(0, FONT_TEXTURE_SIZE, FONT_TEXTURE_SIZE, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000)
 
@@ -110,3 +122,37 @@ open_font :: proc(filename : string) -> ^ttf.Font
     f := ttf.OpenFont(cFilename, FONT_SIZE)
     return f
 }
+
+find_fallback_font :: proc() -> (path : string, ok : bool)
+{
+    desc := os.Process_Desc{
+        command = []string{"fc-match", "-f", "%{file}", "monospace:lang=ja"},
+    }
+    state, stdout, stderr, err := os.process_exec(desc, context.temp_allocator)
+    text := strings.trim_space(string(stdout))
+    if err != nil
+    {
+        fmt.eprintfln("Something went wrong trying to find a fallback font: %v", err)
+        ok = false
+    }
+
+    if state.exit_code != 0
+    {
+        fmt.eprintfln("Something went wrong trying to get a font: %d", state.exit_code)
+    }
+
+    if text == ""
+    {
+        fmt.eprintln("No fallback font found. Will try to go to default fallback font.")
+        ok = false
+        path = DEAFAULT_FALLBACK_FONT_FILENAME
+    }
+    else
+    {
+        path = text
+        ok = true
+    }
+
+    return
+}
+

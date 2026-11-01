@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 import "core:mem"
 
-// TODO(David): Mouse. Font size / guifont. Find the fallback font. Live resize on Wayland. Look into making a release version and storing it in github.
+// TODO(David): Mouse. Font size / guifont. Live resize on Wayland. Look into making a release version and storing it in github.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -160,7 +160,6 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             nvim_silent := app.last_nvim_message_at < app.quit_requested_at
             waited_long := sdl2.GetTicks() - app.quit_requested_at >= 2000
 
-            fmt.eprintfln("QUIT at %d, silent=%v, msgid=%d", sdl2.GetTicks(), nvim_silent, app.quit_msgid)
             if app.quit_msgid != 0
             {
                 if nvim_silent && waited_long

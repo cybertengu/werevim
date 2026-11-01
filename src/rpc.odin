@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:strconv"
 
 // Decodes every complete message at the front of pending into messages,
 // then removes those bytes. A partial message stays in pending.
@@ -260,7 +261,44 @@ handle_message :: proc(app : ^App, msg : Value)
                                 delete(app.nvim_title)
                                 app.nvim_title = strings.clone(title)
                                 set_window_title(app.window, app.nvim_title)
-                            case "option_set", "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
+                            case "option_set":
+                                if len(args) < 2
+                                {
+                                    continue
+                                }
+
+                                method_name, is_name := args[0].(string)
+                                size_name, is_size_name := args[1].(string)
+                                if !is_name || !is_size_name || method_name != "guifont"
+                                {
+                                    continue
+                                }
+
+                                results := strings.split(size_name, ":", context.temp_allocator)
+                                size : i32
+                                find_h : bool
+                                for a_string in results
+                                {
+                                    if strings.has_prefix(a_string, "h")
+                                    {
+                                        number, is_number := strconv.parse_int(a_string[1:])
+                                        if is_number
+                                        {
+                                            size = i32(number)
+                                        }
+                                        find_h = true
+                                        break
+                                    }
+                                }
+
+                                if !find_h
+                                {
+                                    continue
+                                }
+
+                                resize_font(i32(size))
+                                resize_grid_to_window()
+                            case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

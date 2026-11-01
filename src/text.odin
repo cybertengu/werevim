@@ -17,7 +17,7 @@ white : sdl2.Color = {255, 255, 255, 255}
 fontTexture : ^sdl2.Texture
 glyphs : map[rune]sdl2.Rect
 atlas_x, atlas_y, atlas_row_h : i32
-advance, cell_width, cell_height : i32
+cell_width, cell_height : i32
 
 initFont :: proc(filename : string)
 {
@@ -65,9 +65,7 @@ initFont :: proc(filename : string)
     }
 
     sdl2.FreeSurface(surface)
-    ttf.GlyphMetrics32(font, 'M', nil, nil, nil, nil, &advance)
-    cell_width = advance
-    cell_height = ttf.FontLineSkip(font)
+    update_cell_size()
 }
 
 get_glyph :: proc(ch : rune) -> (rect : sdl2.Rect, ok :  bool)
@@ -99,10 +97,7 @@ get_glyph :: proc(ch : rune) -> (rect : sdl2.Rect, ok :  bool)
 
         if atlas_y + text.h >= FONT_TEXTURE_SIZE
         {
-            clear(&glyphs)   
-            atlas_x = 0
-            atlas_y = 0
-            atlas_row_h = 0
+            clear_glyph_atlas()
         }
     }
     
@@ -138,6 +133,10 @@ find_fallback_font :: proc() -> (path : string, ok : bool)
 
     if state.exit_code != 0
     {
+        if len(stderr) > 0
+        {
+            fmt.eprintfln("fc-match failed (exit %d): %s", state.exit_code, strings.trim_space(string(stderr)))
+        }
         fmt.eprintfln("Something went wrong trying to get a font: %d", state.exit_code)
     }
 
@@ -154,5 +153,45 @@ find_fallback_font :: proc() -> (path : string, ok : bool)
     }
 
     return
+}
+
+resize_font :: proc(size : i32)
+{
+    if size < 1
+    {
+        fmt.eprintfln("Ignoring invalid font size: %d", size)
+        return
+    }
+
+    ok := ttf.SetFontSize(font, size)
+    if ok == -1
+    {
+        fmt.eprintfln("Cannot set the font size: %d", size)
+        return
+    }
+
+    if fallback_font != nil
+    {
+        ttf.SetFontSize(fallback_font, size)
+    }
+
+    clear_glyph_atlas()
+    update_cell_size()
+}
+
+clear_glyph_atlas :: proc()
+{
+    clear(&glyphs)   
+    atlas_x = 0
+    atlas_y = 0
+    atlas_row_h = 0
+}
+
+update_cell_size :: proc()
+{
+    advance : i32
+    ttf.GlyphMetrics32(font, 'M', nil, nil, nil, nil, &advance)
+    cell_width = max(advance, 1)
+    cell_height = max(ttf.FontLineSkip(font), 1)
 }
 

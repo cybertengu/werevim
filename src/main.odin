@@ -236,15 +236,20 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
                 // Ideas: sdl2.AddEventWatch to render from inside SDL's event callback; check newer SDL3/sdl2-compat
                 // versions; native SDL3 port.
                 case .SIZE_CHANGED:
-                    app.needs_redraw = true
-                    cols, rows := window_grid_size()
-                    if cols != app.ui_cols || rows != app.ui_rows
-                    {
-                        nvim_ui_try_resize(&app.nvim, cols, rows)
-                        app.ui_cols = cols
-                        app.ui_rows = rows
-                    }
+                    resize_grid_to_window()
             }
+    }
+}
+
+resize_grid_to_window :: proc()
+{
+    app.needs_redraw = true
+    cols, rows := window_grid_size()
+    if cols != app.ui_cols || rows != app.ui_rows
+    {
+        nvim_ui_try_resize(&app.nvim, cols, rows)
+        app.ui_cols = cols
+        app.ui_rows = rows
     }
 }
 

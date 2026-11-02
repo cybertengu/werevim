@@ -193,6 +193,13 @@ nvim_input :: proc(nvim : ^Nvim, text : string) -> bool
     return ok
 }
 
+nvim_input_mouse :: proc(nvim : ^Nvim, button, action, modifier : string, row, col : int) -> bool
+{
+    args := Array{Value(button), Value(action), Value(modifier), Value(i64(0)), Value(i64(row)), Value(i64(col))}
+    _, ok := nvim_request(nvim, "nvim_input_mouse", args)
+    return ok
+}
+
 nvim_ui_try_resize :: proc(nvim : ^Nvim, cols, rows : int) -> bool
 {
     args := Array{Value(i64(cols)), Value(i64(rows))}

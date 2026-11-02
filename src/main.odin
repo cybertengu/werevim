@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 import "core:mem"
 
-// TODO(David): Mouse. Live resize on Wayland. Look into making a release version and storing it in github.
+// TODO(David): Mouse. Live resize on Wayland. Look into making a release version and storing it in github. Support busy_start and busy_stop events.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -242,7 +242,44 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
                 case .SIZE_CHANGED:
                     resize_grid_to_window()
             }
+        case .MOUSEBUTTONDOWN, .MOUSEBUTTONUP:
+            if event.button.button != sdl2.BUTTON_LEFT
+            {
+                break
+            }
+            
+            action := event.type == sdl2.EventType.MOUSEBUTTONDOWN ? "press" : "release"
+            x := event.button.x
+            y := event.button.y
+            row, col := pixel_to_cell(x, y)
+            nvim_input_mouse(&app.nvim, "left", action, "", row, col)
     }
+}
+
+pixel_to_cell :: proc(x, y : i32) -> (row, col : int)
+{
+    win_w, win_h : i32
+    sdl2.GetWindowSize(app.window, &win_w, &win_h)
+    out_w, out_h : i32
+    sdl2.GetRendererOutputSize(app.renderer, &out_w, &out_h)
+    px, py : i32
+    if win_w > 0 && win_h > 0
+    {
+        px = x * out_w / win_w
+        py = y * out_h / win_h
+    }
+    else
+    {
+        px = x
+        py = y
+    }
+
+    col = int(px / cell_width)
+    row = int(py / cell_height)
+    col = clamp(col, 0, app.ui_cols - 1)
+    row = clamp(row, 0, app.ui_rows - 1)
+
+    return
 }
 
 resize_grid_to_window :: proc()

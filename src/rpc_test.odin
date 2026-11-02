@@ -147,7 +147,7 @@ test_rpc_parse_guifont_just_name :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
     value := "JetBrains Mono"
-    names, size, has_size := parse_guifont(value)
+    names, _, has_size := parse_guifont(value)
 
     testing.expect(t, !has_size)
     testing.expect_value(t, len(names), 1)
@@ -159,7 +159,7 @@ test_rpc_parse_guifont_empty :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
     value := ""
-    names, size, has_size := parse_guifont(value)
+    names, _, has_size := parse_guifont(value)
 
     testing.expect(t, !has_size)
     testing.expect_value(t, len(names), 0)
@@ -196,7 +196,7 @@ test_rpc_parse_guifont_font_with_invalid_size :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
     value := "Font:hx"
-    names, size, has_size := parse_guifont(value)
+    names, _, has_size := parse_guifont(value)
 
     testing.expect(t, !has_size)
     testing.expect_value(t, len(names), 1)

@@ -252,7 +252,22 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             x := event.button.x
             y := event.button.y
             row, col := pixel_to_cell(x, y)
+            app.mouse.last_row = row
+            app.mouse.last_col = col
             nvim_input_mouse(&app.nvim, "left", action, "", row, col)
+        case .MOUSEMOTION:
+            if event.motion.state & sdl2.BUTTON_LMASK != 0
+            {
+                x := event.motion.x
+                y := event.motion.y
+                row, col := pixel_to_cell(x, y)
+                if app.mouse.last_row != row || app.mouse.last_col != col
+                {
+                    nvim_input_mouse(&app.nvim, "left", "drag", "", row, col)
+                    app.mouse.last_row = row
+                    app.mouse.last_col = col
+                }
+            }
     }
 }
 
@@ -312,6 +327,13 @@ App :: struct
     force_quit : bool,
     nvim_title : string,
     showing_not_responding : bool,
+    mouse : Mouse,
+}
+
+Mouse :: struct
+{
+    enabled : bool,
+    last_row, last_col : int,
 }
 
 initSDL :: proc()

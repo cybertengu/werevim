@@ -17,6 +17,8 @@ NVIM_EXITED :: 1
 
 app : App
 NVIM_EVENT : u32
+current_font_size : i32
+bundled_font_path : string
 
 main :: proc()
 {
@@ -63,7 +65,9 @@ main :: proc()
         os.exit(1)
     }
 
+    bundled_font_path = strings.clone(font_full_path)
     initFont(font_full_path)
+    current_font_size = FONT_SIZE
 
     cols, rows := window_grid_size()
     app.ui_cols = cols
@@ -336,6 +340,7 @@ shutdown :: proc()
     delete(app.pending)
     delete(app.nvim_title)
     delete(glyphs)
+    delete(bundled_font_path)
     cleanup()
 }
 

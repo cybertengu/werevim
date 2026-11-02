@@ -10,6 +10,11 @@ FONT_SIZE :: 16
 FONT_TEXTURE_SIZE :: 1024
 FONT_FILENAME :: "assets/fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
 DEAFAULT_FALLBACK_FONT_FILENAME :: "/usr/share/fonts/google-noto-sans-mono-cjk-vf-fonts/NotoSansMonoCJK-VF.ttc"
+BUNDLED_FONT_NAMES :: []string{
+    "JetBrains Mono",
+    "JetBrainsMono Nerd Font Mono",
+    "JetBrainsMono NPM",
+}
 
 font : ^ttf.Font
 fallback_font : ^ttf.Font
@@ -28,7 +33,7 @@ initFont :: proc(filename : string)
         os.exit(1)
     }
 
-    backup_font, ok := find_fallback_font()
+    _, backup_font, ok := find_font("monospace:lang=ja")
     if ok
     {
         fallback_font = open_font(backup_font)
@@ -118,17 +123,18 @@ open_font :: proc(filename : string) -> ^ttf.Font
     return f
 }
 
-find_fallback_font :: proc() -> (path : string, ok : bool)
+find_font :: proc(pattern : string) -> (family, path : string, ok : bool)
 {
     desc := os.Process_Desc{
-        command = []string{"fc-match", "-f", "%{file}", "monospace:lang=ja"},
+        command = []string{"fc-match", "-f", "%{family}\n%{file}", pattern},
     }
     state, stdout, stderr, err := os.process_exec(desc, context.temp_allocator)
     text := strings.trim_space(string(stdout))
     if err != nil
     {
-        fmt.eprintfln("Something went wrong trying to find a fallback font: %v", err)
+        fmt.eprintfln("Couldn't run fc-match for %s. Saw %v", pattern, err)
         ok = false
+        return
     }
 
     if state.exit_code != 0
@@ -138,17 +144,15 @@ find_fallback_font :: proc() -> (path : string, ok : bool)
             fmt.eprintfln("fc-match failed (exit %d): %s", state.exit_code, strings.trim_space(string(stderr)))
         }
         fmt.eprintfln("Something went wrong trying to get a font: %d", state.exit_code)
+        ok = false
+        return
     }
 
-    if text == ""
+    lines := strings.split(text, "\n", context.temp_allocator)
+    if len(lines) > 1
     {
-        fmt.eprintln("No fallback font found. Will try to go to default fallback font.")
-        ok = false
-        path = DEAFAULT_FALLBACK_FONT_FILENAME
-    }
-    else
-    {
-        path = text
+        path = lines[1]
+        family = lines[0]
         ok = true
     }
 
@@ -175,6 +179,7 @@ resize_font :: proc(size : i32)
         ttf.SetFontSize(fallback_font, size)
     }
 
+    current_font_size = size
     clear_glyph_atlas()
     update_cell_size()
 }
@@ -193,5 +198,20 @@ update_cell_size :: proc()
     ttf.GlyphMetrics32(font, 'M', nil, nil, nil, nil, &advance)
     cell_width = max(advance, 1)
     cell_height = max(ttf.FontLineSkip(font), 1)
+}
+
+swap_font :: proc(path : string)
+{
+    new_font := open_font(path)
+    if new_font == nil
+    {
+        fmt.eprintfln("Couldn't use the new font %s: %s", path, ttf.GetError())
+        return
+    }
+
+    ttf.CloseFont(font)
+    font = new_font
+    resize_font(current_font_size)
+    resize_grid_to_window()
 }
 

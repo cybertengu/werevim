@@ -4,6 +4,8 @@ import "core:fmt"
 import "core:strings"
 import "core:strconv"
 
+NVIM_DEFAULT_GUIFONT :: "Source Code Pro,DejaVu Sans Mono,Courier New,monospace"
+
 // Decodes every complete message at the front of pending into messages,
 // then removes those bytes. A partial message stays in pending.
 drain_messages :: proc(pending : ^[dynamic]u8, messages : ^[dynamic]Value) -> Decode_Status
@@ -275,9 +277,28 @@ handle_message :: proc(app : ^App, msg : Value)
                                 }
 
                                 results := strings.split(size_name, ":", context.temp_allocator)
+                                if results[0] != "" && results[0] != NVIM_DEFAULT_GUIFONT
+                                {
+                                    names := strings.split(results[0], ",", context.temp_allocator)
+                                    swapped := false
+                                    for name in names
+                                    {
+                                        if try_font_name(strings.trim_space(name)) 
+                                        {
+                                            swapped = true
+                                            break
+                                        }
+                                    }
+                                    
+                                    if !swapped
+                                    {
+                                        fmt.eprintfln("Font not found: %s", results[0])
+                                    }
+                                }
+
                                 size : i32
                                 find_h : bool
-                                for a_string in results
+                                for a_string in results[1:]
                                 {
                                     if strings.has_prefix(a_string, "h")
                                     {
@@ -296,7 +317,7 @@ handle_message :: proc(app : ^App, msg : Value)
                                     continue
                                 }
 
-                                resize_font(i32(size))
+                                resize_font(size)
                                 resize_grid_to_window()
                             case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
                             case:
@@ -315,3 +336,37 @@ handle_message :: proc(app : ^App, msg : Value)
             return
     }
 }
+
+try_font_name :: proc(name : string) -> bool
+{
+    if name == ""
+    {
+        return false
+    }
+
+    for a_font in BUNDLED_FONT_NAMES
+    {
+        if strings.equal_fold(a_font, name)
+        {
+            swap_font(bundled_font_path)
+            return true
+        }
+    }
+    
+    family, official_font, found := find_font(name)
+    if found && official_font != ""
+    {
+        split_family := strings.split(family, ",", context.temp_allocator)
+        for a_family in split_family
+        {
+            if strings.equal_fold(strings.trim_space(a_family), name)
+            {
+                swap_font(official_font)
+                return true
+            }
+        }
+    }
+
+    return false
+}
+

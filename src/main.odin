@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 import "core:mem"
 
-// TODO(David): Mouse. Font size / guifont. Live resize on Wayland. Look into making a release version and storing it in github.
+// TODO(David): Mouse. Live resize on Wayland. Look into making a release version and storing it in github.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768

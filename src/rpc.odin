@@ -276,48 +276,30 @@ handle_message :: proc(app : ^App, msg : Value)
                                     continue
                                 }
 
-                                results := strings.split(size_name, ":", context.temp_allocator)
-                                if results[0] != "" && results[0] != NVIM_DEFAULT_GUIFONT
+                                names, size, has_size := parse_guifont(size_name)
+                                if len(names) > 0
                                 {
-                                    names := strings.split(results[0], ",", context.temp_allocator)
                                     swapped := false
-                                    for name in names
+                                    for font_name in names
                                     {
-                                        if try_font_name(strings.trim_space(name)) 
+                                        if try_font_name(font_name) 
                                         {
                                             swapped = true
                                             break
                                         }
                                     }
-                                    
+
                                     if !swapped
                                     {
-                                        fmt.eprintfln("Font not found: %s", results[0])
+                                        fmt.eprintfln("Font not found: %v", names)
                                     }
                                 }
-
-                                size : i32
-                                find_h : bool
-                                for a_string in results[1:]
+ 
+                                if has_size
                                 {
-                                    if strings.has_prefix(a_string, "h")
-                                    {
-                                        number, is_number := strconv.parse_int(a_string[1:])
-                                        if is_number
-                                        {
-                                            size = i32(number)
-                                        }
-                                        find_h = true
-                                        break
-                                    }
+                                    resize_font(size)
                                 }
 
-                                if !find_h
-                                {
-                                    continue
-                                }
-
-                                resize_font(size)
                                 resize_grid_to_window()
                             case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
                             case:
@@ -368,5 +350,37 @@ try_font_name :: proc(name : string) -> bool
     }
 
     return false
+}
+
+parse_guifont :: proc(value : string) -> (names : []string, size : i32, has_size : bool)
+{
+    results := strings.split(value, ":", context.temp_allocator)
+    if results[0] != "" && results[0] != NVIM_DEFAULT_GUIFONT
+    {
+        names = strings.split(results[0], ",", context.temp_allocator)
+        for i in 0..<len(names)
+        {
+            names[i] = strings.trim_space(names[i])
+        }
+    }
+
+    for a_string in results[1:]
+    {
+        if strings.has_prefix(a_string, "h")
+        {
+            number, is_number := strconv.parse_int(a_string[1:])
+            if is_number
+            {
+                size = i32(number)
+                if size > 0
+                {
+                    has_size = true
+                }
+            }
+            break
+        }
+    }
+
+    return
 }
 

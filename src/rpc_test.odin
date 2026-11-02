@@ -116,3 +116,138 @@ test_rpc_invalid :: proc(t : ^testing.T)
     testing.expect_value(t, actual_status, .Invalid)
     expect_values_equal(t, Value(Array(messages[:])), Value(Array{Value(i64(1))}))
 }
+
+@(test)
+test_rpc_parse_guifont_default_font :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "JetBrains Mono:h14"
+    names, size, has_size := parse_guifont(value)
+    expected := []string{"JetBrains Mono"}
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 14)
+    testing.expect_value(t, names[0], expected[0])
+}
+
+@(test)
+test_rpc_parse_guifont_just_size :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := ":h14"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 14)
+    testing.expect_value(t, len(names), 0)
+}
+
+@(test)
+test_rpc_parse_guifont_just_name :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "JetBrains Mono"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, !has_size)
+    testing.expect_value(t, len(names), 1)
+    testing.expect_value(t, names[0], "JetBrains Mono")
+}
+
+@(test)
+test_rpc_parse_guifont_empty :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := ""
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, !has_size)
+    testing.expect_value(t, len(names), 0)
+}
+
+@(test)
+test_rpc_parse_guifont_font_with_other_text :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "Font:b:h14:i"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 14)
+    testing.expect_value(t, len(names), 1)
+    testing.expect_value(t, names[0], "Font")
+}
+
+@(test)
+test_rpc_parse_guifont_font_with_size :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "Hack:h12"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 12)
+    testing.expect_value(t, len(names), 1)
+    testing.expect_value(t, names[0], "Hack")
+}
+
+@(test)
+test_rpc_parse_guifont_font_with_invalid_size :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "Font:hx"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, !has_size)
+    testing.expect_value(t, len(names), 1)
+    testing.expect_value(t, names[0], "Font")
+}
+
+@(test)
+test_rpc_parse_guifont_font_zero_size :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "Font:h0"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, !has_size)
+    testing.expect_value(t, len(names), 1)
+    testing.expect_value(t, names[0], "Font")
+}
+
+@(test)
+test_rpc_parse_guifont_font_two :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := "A, B:h14"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 14)
+    testing.expect_value(t, len(names), 2)
+    testing.expect_value(t, names[0], "A")
+    testing.expect_value(t, names[1], "B")
+}
+
+@(test)
+test_rpc_parse_guifont_font_default :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    names, size, has_size := parse_guifont(NVIM_DEFAULT_GUIFONT)
+
+    testing.expect(t, !has_size)
+    testing.expect_value(t, len(names), 0)
+}
+
+@(test)
+test_rpc_parse_guifont_font_default_with_size :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    value := NVIM_DEFAULT_GUIFONT + ":h18"
+    names, size, has_size := parse_guifont(value)
+
+    testing.expect(t, has_size)
+    testing.expect_value(t, size, 18)
+    testing.expect_value(t, len(names), 0)
+}
+

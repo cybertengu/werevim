@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 @(require) import "core:mem"
 
-// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github. Support busy_start and busy_stop events.
+// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github. nvim_get_option_info2 was_set instead of comparing against nvim's default guifont string.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -192,6 +192,17 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
         case sdl2.EventType.KEYDOWN:
             mod := event.key.keysym.mod
             sym := event.key.keysym.sym
+            if (.LCTRL in mod || .RCTRL in mod) && (.LSHIFT in mod || .RSHIFT in mod) && sym == .v
+            {
+                result := paste_clipboard(&app.nvim)
+                if !result
+                {
+                    fmt.eprintln("Couldn't send paste to nvim.")
+                }
+
+                break
+            }
+
             ch := rune(sym)
             name, ok := key_name(sym)   
             if ok
@@ -353,6 +364,16 @@ mouse_button_name :: proc(button : u8) -> (name : string, ok : bool)
         name = "right"
         ok = true
     }
+    else if button == sdl2.BUTTON_X1
+    {
+        name = "x1"
+        ok = true
+    }
+    else if button == sdl2.BUTTON_X2
+    {
+        name = "x2"
+        ok = true
+    }
 
     return
 }
@@ -504,3 +525,17 @@ set_window_title :: proc(window : ^sdl2.Window, title : string)
     c_title := strings.clone_to_cstring(title, context.temp_allocator)
     sdl2.SetWindowTitle(window, c_title)
 }
+
+paste_clipboard :: proc(nvim : ^Nvim) -> bool
+{
+    text := sdl2.GetClipboardText()
+    defer sdl2.free(rawptr(text))
+    output := string(text)
+    ok : bool = true
+    if len(output) > 0
+    {
+        ok = nvim_paste(nvim, output, true, -1)
+    }
+    return ok
+}
+

@@ -212,3 +212,11 @@ nvim_command :: proc(nvim : ^Nvim, command : string) -> (bool, int)
     msgid, ok := nvim_request(nvim, "nvim_command", Array{Value(string(command))})
     return ok, msgid
 }
+
+nvim_paste :: proc(nvim : ^Nvim, data : string, crlf : bool, phase : int) -> bool
+{
+    args := Array{Value(data), Value(crlf), Value(i64(phase))}
+    _, ok := nvim_request(nvim, "nvim_paste", args)
+    return ok
+}
+

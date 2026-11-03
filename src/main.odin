@@ -5,7 +5,7 @@ import "vendor:sdl2/ttf"
 import "core:os"
 import "core:fmt"
 import "core:strings"
-import "core:mem"
+@(require) import "core:mem"
 
 // TODO(David): Mouse. Live resize on Wayland. Look into making a release version and storing it in github. Support busy_start and busy_stop events.
 

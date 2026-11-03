@@ -208,7 +208,7 @@ test_rpc_parse_guifont_font_zero_size :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
     value := "Font:h0"
-    names, size, has_size := parse_guifont(value)
+    names, _, has_size := parse_guifont(value)
 
     testing.expect(t, !has_size)
     testing.expect_value(t, len(names), 1)
@@ -233,7 +233,7 @@ test_rpc_parse_guifont_font_two :: proc(t : ^testing.T)
 test_rpc_parse_guifont_font_default :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
-    names, size, has_size := parse_guifont(NVIM_DEFAULT_GUIFONT)
+    names, _, has_size := parse_guifont(NVIM_DEFAULT_GUIFONT)
 
     testing.expect(t, !has_size)
     testing.expect_value(t, len(names), 0)

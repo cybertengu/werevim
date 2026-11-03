@@ -54,6 +54,11 @@ render :: proc(app : ^App)
 
 draw_cursor :: proc(app : ^App)
 {
+    if app.cursor.busy
+    {
+        return
+    }
+
     x := i32(app.cursor.col) * cell_width
     y := i32(app.cursor.row) * cell_height
     if app.cursor.row < 0 || app.cursor.row >= app.grid.height || app.cursor.col < 0 || app.cursor.col >= app.grid.width

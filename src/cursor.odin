@@ -20,6 +20,7 @@ Cursor :: struct
     modes : [dynamic]Mode_Info,
     current_mode : int,
     style_enabled : bool,
+    busy : bool,
 }
 
 mode_info_set :: proc(cursor : ^Cursor, mode_info : Array)

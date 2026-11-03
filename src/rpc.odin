@@ -305,6 +305,10 @@ handle_message :: proc(app : ^App, msg : Value)
                                 app.mouse.enabled = true
                             case "mouse_off":
                                 app.mouse.enabled = false
+                            case "busy_start":
+                                app.cursor.busy = true
+                            case "busy_stop":
+                                app.cursor.busy = false
                             case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)

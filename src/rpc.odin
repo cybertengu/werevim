@@ -301,7 +301,11 @@ handle_message :: proc(app : ^App, msg : Value)
                                 }
 
                                 resize_grid_to_window()
-                            case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport", "mouse_on", "mouse_off":
+                            case "mouse_on":
+                                app.mouse.enabled = true
+                            case "mouse_off":
+                                app.mouse.enabled = false
+                            case "set_icon", "chdir", "hl_group_set", "update_menu", "win_viewport":
                             case:
                                 fmt.printfln("Didn't handle this name for messages: %s", name)
                         }

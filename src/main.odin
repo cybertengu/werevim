@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 @(require) import "core:mem"
 
-// TODO(David): Mouse. Live resize on Wayland. Look into making a release version and storing it in github. Support busy_start and busy_stop events.
+// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github. Support busy_start and busy_stop events.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -40,6 +40,7 @@ main :: proc()
     }
 
     app = {}
+    app.mouse.enabled = true
     event : sdl2.Event
     nvim, ok := nvim_start(os.args[1:])
     if !ok
@@ -243,32 +244,117 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
                     resize_grid_to_window()
             }
         case .MOUSEBUTTONDOWN, .MOUSEBUTTONUP:
-            if event.button.button != sdl2.BUTTON_LEFT
-            {
-                break
-            }
-            
             action := event.type == sdl2.EventType.MOUSEBUTTONDOWN ? "press" : "release"
             x := event.button.x
             y := event.button.y
             row, col := pixel_to_cell(x, y)
+            name, is_name := mouse_button_name(event.button.button)
+            if !is_name
+            {
+                break
+            }
+
             app.mouse.last_row = row
             app.mouse.last_col = col
-            nvim_input_mouse(&app.nvim, "left", action, "", row, col)
-        case .MOUSEMOTION:
-            if event.motion.state & sdl2.BUTTON_LMASK != 0
+            if event.type == sdl2.EventType.MOUSEBUTTONDOWN
             {
-                x := event.motion.x
-                y := event.motion.y
-                row, col := pixel_to_cell(x, y)
-                if app.mouse.last_row != row || app.mouse.last_col != col
+                if app.mouse.held_button == ""
                 {
-                    nvim_input_mouse(&app.nvim, "left", "drag", "", row, col)
-                    app.mouse.last_row = row
-                    app.mouse.last_col = col
+                    app.mouse.held_button = name
+                }
+            }
+            else
+            {
+                if name == app.mouse.held_button
+                {
+                    app.mouse.held_button = ""
+                }
+            }
+
+            prefix := modifier_prefix(sdl2.GetModState(), true)
+            if app.mouse.enabled
+            {
+                nvim_input_mouse(&app.nvim, name, action, prefix, row, col)
+            }
+        case .MOUSEMOTION:
+            if app.mouse.held_button == ""
+            {
+                break
+            }
+
+            x := event.motion.x
+            y := event.motion.y
+            row, col := pixel_to_cell(x, y)
+            if app.mouse.last_row != row || app.mouse.last_col != col
+            {
+                prefix := modifier_prefix(sdl2.GetModState(), true)
+                if app.mouse.enabled
+                {
+                    nvim_input_mouse(&app.nvim, app.mouse.held_button, "drag", prefix, row, col)
+                }
+                app.mouse.last_row = row
+                app.mouse.last_col = col
+            }
+        case .MOUSEWHEEL:
+            vertical_direction, horizontal_direction : string
+            x := event.wheel.x
+            y := event.wheel.y
+            if y > 0
+            {
+                vertical_direction = "up"
+            }
+            else if y < 0
+            {
+                vertical_direction = "down"
+            }
+
+            if x > 0
+            {
+                horizontal_direction = "right"
+            }
+            else if x < 0
+            {
+                horizontal_direction = "left"
+            }
+
+            mx, my : i32
+            sdl2.GetMouseState(&mx, &my)
+            if app.mouse.enabled
+            {
+                row, col := pixel_to_cell(mx, my)
+                prefix := modifier_prefix(sdl2.GetModState(), true)
+                for _ in 0..<abs(y)
+                {
+                   nvim_input_mouse(&app.nvim, "wheel", vertical_direction, prefix, row, col)
+                }
+
+                for _ in 0..<abs(x)
+                {
+                    nvim_input_mouse(&app.nvim, "wheel", horizontal_direction, prefix, row, col)
                 }
             }
     }
+}
+
+mouse_button_name :: proc(button : u8) -> (name : string, ok : bool)
+{
+    if button == sdl2.BUTTON_LEFT
+    {
+        name = "left"
+        ok = true
+    }
+    else if button == sdl2.BUTTON_MIDDLE
+    {
+        name = "middle"
+        ok = true
+    }
+    else if button == sdl2.BUTTON_RIGHT
+    {
+        name = "right"
+        ok = true
+    }
+
+    return
 }
 
 pixel_to_cell :: proc(x, y : i32) -> (row, col : int)
@@ -333,6 +419,7 @@ App :: struct
 Mouse :: struct
 {
     enabled : bool,
+    held_button : string,
     last_row, last_col : int,
 }
 

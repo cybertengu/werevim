@@ -90,7 +90,6 @@ main :: proc()
         fmt.eprintln("Couldn't set up the title.")
     }
 
-    nvim_ui_try_resize(&app.nvim, app.ui_cols, app.ui_rows)
     reader_start(&app.reader, &app.nvim, NVIM_EVENT)
     app.is_running = true
     if app.reader.thread == nil

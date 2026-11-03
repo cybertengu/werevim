@@ -92,28 +92,22 @@ nvim_close :: proc(nvim : ^Nvim)
     }
 }
 
-nvim_request :: proc(nvim : ^Nvim, method : string, args : Array) -> (msgid : int, ok : bool)
+nvim_write :: proc(nvim : ^Nvim, buf : []u8) -> bool
 {
-    msgid = nvim.next_id
-    nvim.next_id += 1
-    buf : [dynamic]u8
-    defer delete(buf)
-    encode_request(&buf, msgid, method, args)
+    counter : int
     n : int
     err : os.Error
-    counter : int
+    ok : bool
     for
     {
         n, err = os.write(nvim.to_nvim, buf[counter:])
         if err != nil
         {
-            ok = false
             break
         }
 
         if n == 0
         {
-            ok = false
             break
         }
 
@@ -125,6 +119,25 @@ nvim_request :: proc(nvim : ^Nvim, method : string, args : Array) -> (msgid : in
         }
     }
 
+    return ok
+}
+
+nvim_notify :: proc(nvim : ^Nvim, method : string, args : Array) -> bool
+{
+    buf : [dynamic]u8
+    defer delete(buf)
+    encode_notification(&buf, method, args)
+    return nvim_write(nvim, buf[:])
+}
+
+nvim_request :: proc(nvim : ^Nvim, method : string, args : Array) -> (msgid : int, ok : bool)
+{
+    msgid = nvim.next_id
+    nvim.next_id += 1
+    buf : [dynamic]u8
+    defer delete(buf)
+    encode_request(&buf, msgid, method, args)
+    ok = nvim_write(nvim, buf[:])
     return
 }
 
@@ -189,21 +202,21 @@ nvim_quit :: proc(nvim : ^Nvim, force_quit : bool)
 nvim_input :: proc(nvim : ^Nvim, text : string) -> bool
 {
     args := Array{Value(text)}
-    _, ok := nvim_request(nvim, "nvim_input", args)
+    ok := nvim_notify(nvim, "nvim_input", args)
     return ok
 }
 
 nvim_input_mouse :: proc(nvim : ^Nvim, button, action, modifier : string, row, col : int) -> bool
 {
     args := Array{Value(button), Value(action), Value(modifier), Value(i64(0)), Value(i64(row)), Value(i64(col))}
-    _, ok := nvim_request(nvim, "nvim_input_mouse", args)
+    ok := nvim_notify(nvim, "nvim_input_mouse", args)
     return ok
 }
 
 nvim_ui_try_resize :: proc(nvim : ^Nvim, cols, rows : int) -> bool
 {
     args := Array{Value(i64(cols)), Value(i64(rows))}
-    _, result := nvim_request(&app.nvim, "nvim_ui_try_resize", args)
+    result := nvim_notify(nvim, "nvim_ui_try_resize", args)
     return result
 }
 
@@ -216,7 +229,15 @@ nvim_command :: proc(nvim : ^Nvim, command : string) -> (bool, int)
 nvim_paste :: proc(nvim : ^Nvim, data : string, crlf : bool, phase : int) -> bool
 {
     args := Array{Value(data), Value(crlf), Value(i64(phase))}
-    _, ok := nvim_request(nvim, "nvim_paste", args)
+    ok := nvim_notify(nvim, "nvim_paste", args)
     return ok
+}
+
+encode_notification :: proc(buf : ^[dynamic]u8, method : string, args : Array)
+{
+    encode_array_header(buf, 3)
+    encode_int(buf, 2)
+    encode_string(buf, method)
+    encode_value(buf, Value(args))
 }
 

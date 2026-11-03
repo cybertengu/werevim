@@ -62,15 +62,24 @@ handle_message :: proc(app : ^App, msg : Value)
                 return
             }
             
+            msgid, is_msgid := array[1].(i64)
+            if !is_msgid
+            {
+                fmt.eprintfln("Response msgid is not a number: %v", array[1])
+                return
+            }
+            
+            if app.quit_msgid != 0 && msgid == i64(app.quit_msgid)
+            {
+                app.quit_msgid = 0
+                app.quit_requested_at = 0
+            }
+
             _, is_nil := array[2].(Nil)
             if !is_nil
             {
                 fmt.eprintfln("This is an error, saw: %v", array[2])   
-                return
             }
-
-            app.quit_msgid = 0
-            app.quit_requested_at = 0
         case 2:
             method, is_string := array[1].(string)
             if !is_string

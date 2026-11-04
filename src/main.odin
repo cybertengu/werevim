@@ -8,7 +8,7 @@ import "core:strings"
 @(require) import "core:mem"
 
 // NOTE(David): Live resize can stall on GNOME/Wayland. The main thread gets stuck
-// in libdecor's GTK plugin redrawing the title bar during SDL_WaitEVent.
+// in libdecor's GTK plugin redrawing the title bar during SDL_WaitEvent.
 // Workaround is to have LIBDECOR_PLUGIN_DIR pointing at a folder containing
 // only libdecor-cairo.so. See README.
 
@@ -249,10 +249,6 @@ handle_event :: proc(event : ^sdl2.Event, app : ^App)
             {
                 case .EXPOSED, .SHOWN, .RESTORED:
                     app.needs_redraw = true
-                // TODO(David): Resize is laggy on Wayland (events only arrive after the drap; smooth on X11).
-                // If changes are made, update run_and_build.sh file.
-                // Ideas: sdl2.AddEventWatch to render from inside SDL's event callback; check newer SDL3/sdl2-compat
-                // versions; native SDL3 port.
                 case .SIZE_CHANGED:
                     resize_grid_to_window()
             }

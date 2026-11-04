@@ -41,8 +41,21 @@ The build.bat expects Odin at C:\Odin (not yet set up as an environment variable
 NOTE: I have not tested on Windows. I don't have one anymore.
 
 ## Known Issues
-Resizing the window is sluggish on Fedora Workstation. I made a permanent workaround on my machine.
-Then updated my bashrc file to have an alias. This will not work for an app launcher.
+Resizing the window is sluggish on GNOME/Wayland. werevim gets stuck in libdecor's GTK
+plugin while it redrews the title bar. To work around it, use libdecor's Cairo plugin:
+
+```
+mkdir -p ~/.local/share/werevim/libdecor
+ln -s /usr/lib64/libdecor/plugins-1/libdecor-cairo.so ~/.local/share/werevim/libdecor/
+```
+
+Then add this to `~/.bashrc`:
+```
+alias werevim='LIBDECOR_PLUGIN_DIR=$HOME/.local/share/werevim/libdecor werevim'
+```
+
+The plugin path may differ on other distros, the title bar will look plainer, and
+the alias doesn't apply to app launchers. A short stall can still happen on the first drag.
 
 ## Baseline Build Time (I think I won't update this anymore)
 Tested on Windows (debug build, but I don't have a Windows computer anymore), macOS planned. Used flags such as -debug and -show-timings. Tested on Fedora.

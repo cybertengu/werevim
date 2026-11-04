@@ -7,7 +7,7 @@ import "core:fmt"
 import "core:strings"
 @(require) import "core:mem"
 
-// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github. nvim_get_option_info2 was_set instead of comparing against nvim's default guifont string.
+// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768
@@ -434,6 +434,8 @@ App :: struct
     nvim_title : string,
     showing_not_responding : bool,
     mouse : Mouse,
+    pending_guifont : string,
+    guifont_info_msgid : int,
 }
 
 Mouse :: struct
@@ -507,6 +509,7 @@ shutdown :: proc()
     delete(app.nvim_title)
     delete(glyphs)
     delete(bundled_font_path)
+    delete(app.pending_guifont)
     cleanup()
 }
 

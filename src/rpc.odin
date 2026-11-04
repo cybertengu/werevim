@@ -4,8 +4,6 @@ import "core:fmt"
 import "core:strings"
 import "core:strconv"
 
-NVIM_DEFAULT_GUIFONT :: "Source Code Pro,DejaVu Sans Mono,Courier New,monospace"
-
 // Decodes every complete message at the front of pending into messages,
 // then removes those bytes. A partial message stays in pending.
 drain_messages :: proc(pending : ^[dynamic]u8, messages : ^[dynamic]Value) -> Decode_Status
@@ -68,6 +66,7 @@ handle_message :: proc(app : ^App, msg : Value)
                 fmt.eprintfln("Response msgid is not a number: %v", array[1])
                 return
             }
+
             
             if app.quit_msgid != 0 && msgid == i64(app.quit_msgid)
             {
@@ -79,6 +78,18 @@ handle_message :: proc(app : ^App, msg : Value)
             if !is_nil
             {
                 fmt.eprintfln("This is an error, saw: %v", array[2])   
+            }
+            
+            if app.guifont_info_msgid != 0 && msgid == i64(app.guifont_info_msgid)
+            {
+                app.guifont_info_msgid = 0
+                if is_nil && option_was_set(array[3])
+                {
+                    apply_guifont(app.pending_guifont)
+                }
+
+                delete(app.pending_guifont)
+                app.pending_guifont = ""
             }
         case 2:
             method, is_string := array[1].(string)
@@ -285,31 +296,16 @@ handle_message :: proc(app : ^App, msg : Value)
                                     continue
                                 }
 
-                                names, size, has_size := parse_guifont(size_name)
-                                if len(names) > 0
+                                delete(app.pending_guifont)
+                                app.pending_guifont = strings.clone(size_name)
+                                msgid, is_msgid := nvim_get_option_info2(&app.nvim, "guifont")
+                                if !is_msgid
                                 {
-                                    swapped := false
-                                    for font_name in names
-                                    {
-                                        if try_font_name(font_name) 
-                                        {
-                                            swapped = true
-                                            break
-                                        }
-                                    }
-
-                                    if !swapped
-                                    {
-                                        fmt.eprintfln("Font not found: %v", names)
-                                    }
-                                }
- 
-                                if has_size
-                                {
-                                    resize_font(size)
+                                    fmt.eprintln("Couldn't send a guifont message.")
+                                    continue
                                 }
 
-                                resize_grid_to_window()
+                                app.guifont_info_msgid = msgid
                             case "mouse_on":
                                 app.mouse.enabled = true
                             case "mouse_off":
@@ -334,6 +330,35 @@ handle_message :: proc(app : ^App, msg : Value)
             fmt.eprintfln("Unknown message kind: %v", kind)
             return
     }
+}
+
+apply_guifont :: proc(value : string)
+{
+    names, size, has_size := parse_guifont(value)
+    if len(names) > 0
+    {
+        swapped := false
+        for font_name in names
+        {
+            if try_font_name(font_name) 
+            {
+                swapped = true
+                break
+            }
+        }
+
+        if !swapped
+        {
+            fmt.eprintfln("Font not found: %v", names)
+        }
+    }
+
+    if has_size
+    {
+        resize_font(size)
+    }
+
+    resize_grid_to_window()
 }
 
 try_font_name :: proc(name : string) -> bool
@@ -372,7 +397,7 @@ try_font_name :: proc(name : string) -> bool
 parse_guifont :: proc(value : string) -> (names : []string, size : i32, has_size : bool)
 {
     results := strings.split(value, ":", context.temp_allocator)
-    if results[0] != "" && results[0] != NVIM_DEFAULT_GUIFONT
+    if results[0] != ""
     {
         names = strings.split(results[0], ",", context.temp_allocator)
         for i in 0..<len(names)
@@ -399,5 +424,30 @@ parse_guifont :: proc(value : string) -> (names : []string, size : i32, has_size
     }
 
     return
+}
+
+option_was_set :: proc(value : Value) -> bool
+{
+    info, is_map := value.(Map)
+    if is_map
+    {
+        for pair in info
+        {
+            key, is_key := pair.key.(string)
+            if is_key && key == "was_set"
+            {
+                was_set, is_bool := pair.value.(bool)
+                if !is_bool
+                {
+                    fmt.eprintfln("was_set was not a boolean: %v", pair.value)
+                    return false
+                }
+
+                return was_set
+            }
+        }
+    }
+
+    return false
 }
 

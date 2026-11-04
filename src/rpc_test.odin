@@ -230,24 +230,41 @@ test_rpc_parse_guifont_font_two :: proc(t : ^testing.T)
 }
 
 @(test)
-test_rpc_parse_guifont_font_default :: proc(t : ^testing.T)
+test_option_was_set_invalid :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
-    names, _, has_size := parse_guifont(NVIM_DEFAULT_GUIFONT)
+    status := option_was_set(Value(i64(5)))
 
-    testing.expect(t, !has_size)
-    testing.expect_value(t, len(names), 0)
+    testing.expect(t, !status)
 }
 
 @(test)
-test_rpc_parse_guifont_font_default_with_size :: proc(t : ^testing.T)
+test_option_was_set_no_key :: proc(t : ^testing.T)
 {
     defer free_all(context.temp_allocator)
-    value := NVIM_DEFAULT_GUIFONT + ":h18"
-    names, size, has_size := parse_guifont(value)
+    values := Map{Pair{Value(string("name")), Value(string("guifont"))}}
+    status := option_was_set(values)
 
-    testing.expect(t, has_size)
-    testing.expect_value(t, size, 18)
-    testing.expect_value(t, len(names), 0)
+    testing.expect(t, !status)
+}
+
+@(test)
+test_option_was_set_no_bool :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    values := Map{Pair{Value(string("was_set")), Value(string("yes"))}}
+    status := option_was_set(values)
+
+    testing.expect(t, !status)
+}
+
+@(test)
+test_option_was_set_valid :: proc(t : ^testing.T)
+{
+    defer free_all(context.temp_allocator)
+    values := Map{Pair{Value(string("was_set")), Value(bool(true))}}
+    status := option_was_set(values)
+
+    testing.expect(t, status)
 }
 

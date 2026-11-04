@@ -233,6 +233,12 @@ nvim_paste :: proc(nvim : ^Nvim, data : string, crlf : bool, phase : int) -> boo
     return ok
 }
 
+nvim_get_option_info2 :: proc(nvim : ^Nvim, name : string) -> (msgid : int, ok : bool)
+{
+    args := Array{Value(name), Value(Map{})}
+    return nvim_request(nvim, "nvim_get_option_info2", args)
+}
+
 encode_notification :: proc(buf : ^[dynamic]u8, method : string, args : Array)
 {
     encode_array_header(buf, 3)

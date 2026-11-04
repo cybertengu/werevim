@@ -40,6 +40,10 @@ The build.bat expects Odin at C:\Odin (not yet set up as an environment variable
 ```
 NOTE: I have not tested on Windows. I don't have one anymore.
 
+## Known Issues
+Resizing the window is sluggish on Fedora Workstation. I made a permanent workaround on my machine.
+Then updated my bashrc file to have an alias. This will not work for an app launcher.
+
 ## Baseline Build Time (I think I won't update this anymore)
 Tested on Windows (debug build, but I don't have a Windows computer anymore), macOS planned. Used flags such as -debug and -show-timings. Tested on Fedora.
 

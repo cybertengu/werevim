@@ -7,7 +7,10 @@ import "core:fmt"
 import "core:strings"
 @(require) import "core:mem"
 
-// TODO(David): Live resize on Wayland. Look into making a release version and storing it in github.
+// NOTE(David): Live resize can stall on GNOME/Wayland. The main thread gets stuck
+// in libdecor's GTK plugin redrawing the title bar during SDL_WaitEVent.
+// Workaround is to have LIBDECOR_PLUGIN_DIR pointing at a folder containing
+// only libdecor-cairo.so. See README.
 
 SCREEN_WIDTH :: 1024
 SCREEN_HEIGHT :: 768

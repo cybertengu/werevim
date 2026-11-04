@@ -1,6 +1,6 @@
 # Werevim
 
-![Werevim editing a file](docs/screenshot.png)
+![Werevim editing a file](screenshots/app.png)
 
 ## Purpose
 A GUI for Neovim, written in Odin with SDL2. Visual Studio Code's (VS Code) vim emulation doesn't support every Vim command, and I wanted an editor without constant update pages. Auto-completion is annoying to me in VS Code when typing.
